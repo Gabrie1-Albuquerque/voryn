@@ -8,11 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import ConflictError, NotFoundError
 from app.models.appointment import Appointment, AppointmentStatusHistory
 from app.models.catalog import Service
-from app.models.enums import AppointmentSource, AppointmentStatus
+from app.models.enums import AppointmentSource, AppointmentStatus, NotificationType
 from app.repositories.appointment_repository import AppointmentRepository
 from app.repositories.catalog_repository import RoomRepository, ServiceRepository
 from app.repositories.client_repository import ClientRepository
 from app.repositories.employee_repository import EmployeeRepository
+from app.services import notification_service, waitlist_service
+from app.services.notification_service import NotificationContext
 
 # Explicit allowed-transitions map: any transition not listed here is
 # rejected, so status can never move via an arbitrary router-level write --
@@ -77,6 +79,38 @@ async def _load_service(session: AsyncSession, tenant_id: uuid.UUID, service_id:
     if service is None:
         raise NotFoundError("service not found")
     return service
+
+
+def _notification_context(appointment: Appointment) -> NotificationContext:
+    """Appointment must have client/service/employee already loaded (every
+    function here fetches via get_appointment, which eager-loads them) --
+    accessing an unloaded relationship here would hit the same
+    MissingGreenlet lazy-load trap as employee_service's many-to-many
+    assignment did.
+    """
+    return NotificationContext(
+        client_name=appointment.client.name,
+        client_phone=appointment.client.phone,
+        service_name=appointment.service.name,
+        employee_name=appointment.employee.name,
+        starts_at=appointment.starts_at,
+    )
+
+
+async def find_next_actionable_appointment_for_client(
+    session: AsyncSession, tenant_id: uuid.UUID, client_id: uuid.UUID
+) -> Appointment | None:
+    """Soonest-upcoming Pending/Confirmed appointment for a client -- used to
+    resolve which appointment an inbound WhatsApp reply is about, absent a
+    reference code in the message (see routers/webhooks.py). A real
+    reference-code scheme (embedding a short code in every outbound
+    reminder/confirmation and parsing it back out of the reply) would be
+    more robust against a client with multiple upcoming appointments
+    replying to the wrong one, but needs the code roundtrip built and
+    tracked; this heuristic is the pragmatic MVP starting point the plan
+    flagged as the fallback option.
+    """
+    return await AppointmentRepository(session, tenant_id).find_next_actionable_for_client(client_id)
 
 
 async def list_appointments(
@@ -167,6 +201,15 @@ async def create_appointment(
         raise ConflictError("Este horário não está mais disponível") from exc
 
     result = await get_appointment(session, tenant_id, appointment.id)
+    if initial_status == AppointmentStatus.CONFIRMED:
+        await notification_service.send_notification(
+            session,
+            tenant_id,
+            appointment_id=result.id,
+            client_id=result.client_id,
+            notification_type=NotificationType.CONFIRMATION,
+            context=_notification_context(result),
+        )
     await session.commit()
     return result
 
@@ -179,6 +222,13 @@ async def _transition(
     *,
     changed_by: str,
 ) -> Appointment:
+    """flush(), not commit(): a nested step from each public function below,
+    which owns the single final commit -- confirm/cancel both need to do
+    more (send a notification, check the waitlist) in the same transaction
+    afterwards, and an intermediate commit here would end that transaction
+    and lose RLS context for them, same as everywhere else this pattern
+    shows up.
+    """
     allowed = _ALLOWED_TRANSITIONS.get(appointment.status, set())
     if to_status not in allowed:
         raise ConflictError(
@@ -196,23 +246,33 @@ async def _transition(
         )
     )
     await session.flush()
-    result = await get_appointment(session, tenant_id, appointment.id)
-    await session.commit()
-    return result
+    return await get_appointment(session, tenant_id, appointment.id)
 
 
 async def confirm_appointment(
     session: AsyncSession, tenant_id: uuid.UUID, appointment_id: uuid.UUID, *, changed_by: str
 ) -> Appointment:
     appointment = await get_appointment(session, tenant_id, appointment_id)
-    return await _transition(session, tenant_id, appointment, AppointmentStatus.CONFIRMED, changed_by=changed_by)
+    result = await _transition(session, tenant_id, appointment, AppointmentStatus.CONFIRMED, changed_by=changed_by)
+    await notification_service.send_notification(
+        session,
+        tenant_id,
+        appointment_id=result.id,
+        client_id=result.client_id,
+        notification_type=NotificationType.CONFIRMATION,
+        context=_notification_context(result),
+    )
+    await session.commit()
+    return result
 
 
 async def complete_appointment(
     session: AsyncSession, tenant_id: uuid.UUID, appointment_id: uuid.UUID, *, changed_by: str
 ) -> Appointment:
     appointment = await get_appointment(session, tenant_id, appointment_id)
-    return await _transition(session, tenant_id, appointment, AppointmentStatus.COMPLETED, changed_by=changed_by)
+    result = await _transition(session, tenant_id, appointment, AppointmentStatus.COMPLETED, changed_by=changed_by)
+    await session.commit()
+    return result
 
 
 async def cancel_appointment(
@@ -220,9 +280,18 @@ async def cancel_appointment(
 ) -> Appointment:
     appointment = await get_appointment(session, tenant_id, appointment_id)
     result = await _transition(session, tenant_id, appointment, AppointmentStatus.CANCELLED, changed_by=changed_by)
-    # Automações (milestone 7) hooks waitlist promotion in here: the moment
-    # a slot frees up is exactly this transition, and it's lower-latency to
-    # check here than to wait for a periodic scan.
+    await notification_service.send_notification(
+        session,
+        tenant_id,
+        appointment_id=result.id,
+        client_id=result.client_id,
+        notification_type=NotificationType.CANCELLATION,
+        context=_notification_context(result),
+    )
+    # The moment a slot frees up is exactly this transition -- lower latency
+    # than waiting for the periodic reminder scan to eventually notice.
+    await waitlist_service.promote_next_match(session, tenant_id, result)
+    await session.commit()
     return result
 
 
@@ -268,5 +337,13 @@ async def reschedule_appointment(
         raise ConflictError("Este horário não está mais disponível") from exc
 
     result = await get_appointment(session, tenant_id, appointment.id)
+    await notification_service.send_notification(
+        session,
+        tenant_id,
+        appointment_id=result.id,
+        client_id=result.client_id,
+        notification_type=NotificationType.RESCHEDULE,
+        context=_notification_context(result),
+    )
     await session.commit()
     return result

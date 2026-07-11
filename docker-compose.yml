@@ -55,6 +55,53 @@ services:
       - ./backend/src:/app/src
       - ./backend/alembic:/app/alembic
 
+  worker:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    # Same image as backend (identical dependencies), different entrypoint --
+    # no separate Dockerfile needed for what's just a different command.
+    command: ["rq", "worker", "--url", "redis://redis:6379/0"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://app_runtime:${APP_RUNTIME_DB_PASSWORD:-app_runtime}@postgres:5432/${POSTGRES_DB:-app}
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@postgres:5432/${POSTGRES_DB:-app}
+      APP_RUNTIME_DB_PASSWORD: ${APP_RUNTIME_DB_PASSWORD:-app_runtime}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    # Registers the recurring reminder-scan tick then blocks running
+    # rq-scheduler's loop -- a separate process/service from `worker`
+    # (job consumption) and `backend` (request handling).
+    command: ["python", "-m", "app.workers.scheduler"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://app_runtime:${APP_RUNTIME_DB_PASSWORD:-app_runtime}@postgres:5432/${POSTGRES_DB:-app}
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@postgres:5432/${POSTGRES_DB:-app}
+      APP_RUNTIME_DB_PASSWORD: ${APP_RUNTIME_DB_PASSWORD:-app_runtime}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+
   frontend:
     build:
       context: .

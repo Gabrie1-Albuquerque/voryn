@@ -40,11 +40,22 @@ class Settings(BaseSettings):
     payment_provider: str = "mock"  # mock | mercadopago
     email_provider: str = "console"
 
+    # How often workers/scheduler.py's periodic tick runs. The reminder scan
+    # window (workers/reminders.py) is sized to match this exactly, so every
+    # appointment's 24h/2h-before instant gets caught in exactly one tick.
+    reminder_scan_interval_minutes: int = 5
+
     mercadopago_access_token: str | None = None
     mercadopago_webhook_secret: str | None = None
 
     whatsapp_cloud_token: str | None = None
     whatsapp_cloud_phone_number_id: str | None = None
+    # Meta's webhook registration handshake (GET with hub.verify_token) checks
+    # against this. One value for the whole app rather than per-tenant: the
+    # Company model has no per-tenant WhatsApp credential storage yet, and a
+    # single Meta Business App covering every tenant is the simpler starting
+    # shape for a bootstrapped SaaS.
+    whatsapp_webhook_verify_token: str = "change-me-in-.env"
     zapi_instance_id: str | None = None
     zapi_token: str | None = None
 

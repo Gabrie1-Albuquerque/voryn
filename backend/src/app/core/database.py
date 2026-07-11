@@ -1,15 +1,17 @@
 import uuid
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from typing import Protocol
 
 import jwt
 from fastapi import Depends
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
-from app.core.exceptions import AuthenticationError
+from app.core.exceptions import AuthenticationError, NotFoundError
 from app.core.security import decode_token, oauth2_scheme
+from app.models.tenant import Company
 
 settings = get_settings()
 
@@ -99,3 +101,42 @@ async def get_tenant_db(
     async with async_session_factory() as session:
         await set_tenant_context(session, tenant_id)
         yield session
+
+
+@dataclass(frozen=True)
+class SlugTenantContext:
+    """Bundles what get_tenant_db's callers get for free from the JWT
+    (session + tenant_id) for the slug-resolved case, where repositories
+    still need an explicit tenant_id and there's no CurrentUser carrying one.
+    """
+
+    session: AsyncSession
+    tenant_id: uuid.UUID
+
+
+async def get_tenant_db_by_slug(company_slug: str) -> AsyncGenerator[SlugTenantContext, None]:
+    """The unauthenticated counterpart to get_tenant_db: for routes that
+    resolve their tenant from a URL path segment instead of a JWT (the
+    public booking page, milestone 9; the inbound WhatsApp webhook, this
+    milestone -- each tenant's webhook URL includes their own slug, which
+    sidesteps trying to resolve tenant from an inbound phone number alone,
+    something two different tenants' clients could plausibly share).
+
+    `company_slug` is bound automatically by FastAPI from the path
+    parameter of the same name on whatever route depends on this.
+
+    The Company lookup itself needs no tenant context first: companies has
+    no RLS policy (it's the tenant root, not a tenant-owned table -- see
+    migration 0001), so this is a perfectly normal query on the restricted
+    app_runtime role, same as any other read on a non-tenant table.
+    """
+    async with async_session_factory() as session:
+        result = await session.execute(
+            select(Company.id).where(Company.slug == company_slug, Company.is_active.is_(True))
+        )
+        tenant_id = result.scalar_one_or_none()
+        if tenant_id is None:
+            raise NotFoundError("company not found")
+
+        await set_tenant_context(session, tenant_id)
+        yield SlugTenantContext(session=session, tenant_id=tenant_id)
