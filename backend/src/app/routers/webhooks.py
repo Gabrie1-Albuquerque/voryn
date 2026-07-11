@@ -7,7 +7,7 @@ from app.core.config import get_settings
 from app.core.database import SlugTenantContext, get_tenant_db_by_slug
 from app.core.exceptions import AuthenticationError
 from app.repositories.client_repository import ClientRepository
-from app.services import appointment_service
+from app.services import appointment_service, payment_service
 from app.providers.notifications.factory import get_notification_provider
 
 router = APIRouter()
@@ -72,3 +72,17 @@ async def receive_whatsapp_webhook(
         return {"status": "cancelled"}
 
     return {"status": "unrecognized"}
+
+
+@router.post("/mercadopago")
+async def receive_mercadopago_webhook(request: Request) -> dict[str, str]:
+    """One global endpoint (no per-tenant slug, unlike the WhatsApp webhook
+    above): Mercado Pago notifications don't carry any tenant info we don't
+    put there ourselves, so tenant is resolved from the external_reference
+    embedded when the charge was created (see payment_service.py), not from
+    the URL -- handle_mercadopago_webhook manages its own DB session once
+    that's parsed out, since none exists yet at this point.
+    """
+    payload = await request.json()
+    await payment_service.handle_mercadopago_webhook(payload, dict(request.headers))
+    return {"status": "ok"}
