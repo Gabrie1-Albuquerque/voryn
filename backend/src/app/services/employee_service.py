@@ -43,7 +43,9 @@ async def create_employee(session: AsyncSession, tenant_id: uuid.UUID, data: Emp
     services = await _resolve_services(session, tenant_id, data.service_ids)
     employee = EmployeeRepository(session, tenant_id).add(Employee(name=data.name, services=services))
     await session.flush()
-    return await get_employee(session, tenant_id, employee.id)
+    result = await get_employee(session, tenant_id, employee.id)
+    await session.commit()
+    return result
 
 
 async def update_employee(
@@ -53,7 +55,9 @@ async def update_employee(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(employee, field, value)
     await session.flush()
-    return await get_employee(session, tenant_id, employee_id)
+    result = await get_employee(session, tenant_id, employee_id)
+    await session.commit()
+    return result
 
 
 async def deactivate_employee(session: AsyncSession, tenant_id: uuid.UUID, employee_id: uuid.UUID) -> None:
@@ -62,7 +66,7 @@ async def deactivate_employee(session: AsyncSession, tenant_id: uuid.UUID, emplo
     # member from the schedule means deactivating, not deleting the row.
     employee = await get_employee(session, tenant_id, employee_id)
     employee.is_active = False
-    await session.flush()
+    await session.commit()
 
 
 async def replace_employee_services(
@@ -71,7 +75,9 @@ async def replace_employee_services(
     employee = await get_employee(session, tenant_id, employee_id)
     employee.services = await _resolve_services(session, tenant_id, service_ids)
     await session.flush()
-    return await get_employee(session, tenant_id, employee_id)
+    result = await get_employee(session, tenant_id, employee_id)
+    await session.commit()
+    return result
 
 
 async def replace_employee_availability(
@@ -94,4 +100,6 @@ async def replace_employee_availability(
             )
         )
     await session.flush()
-    return await get_employee(session, tenant_id, employee_id)
+    result = await get_employee(session, tenant_id, employee_id)
+    await session.commit()
+    return result

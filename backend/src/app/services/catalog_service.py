@@ -26,7 +26,7 @@ async def get_service(session: AsyncSession, tenant_id: uuid.UUID, service_id: u
 
 async def create_service(session: AsyncSession, tenant_id: uuid.UUID, data: ServiceCreateRequest) -> Service:
     service = ServiceRepository(session, tenant_id).add(Service(**data.model_dump()))
-    await session.flush()
+    await session.commit()
     return service
 
 
@@ -38,14 +38,14 @@ async def update_service(
         setattr(service, field, value)
     if service.deposit_required and (service.deposit_type is None or service.deposit_value is None):
         raise ValidationError("deposit_type and deposit_value are required when deposit_required is true")
-    await session.flush()
+    await session.commit()
     return service
 
 
 async def deactivate_service(session: AsyncSession, tenant_id: uuid.UUID, service_id: uuid.UUID) -> None:
     service = await get_service(session, tenant_id, service_id)
     service.is_active = False
-    await session.flush()
+    await session.commit()
 
 
 async def list_rooms(session: AsyncSession, tenant_id: uuid.UUID) -> list[Room]:
@@ -61,7 +61,7 @@ async def get_room(session: AsyncSession, tenant_id: uuid.UUID, room_id: uuid.UU
 
 async def create_room(session: AsyncSession, tenant_id: uuid.UUID, data: RoomCreateRequest) -> Room:
     room = RoomRepository(session, tenant_id).add(Room(**data.model_dump()))
-    await session.flush()
+    await session.commit()
     return room
 
 
@@ -71,11 +71,11 @@ async def update_room(
     room = await get_room(session, tenant_id, room_id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(room, field, value)
-    await session.flush()
+    await session.commit()
     return room
 
 
 async def deactivate_room(session: AsyncSession, tenant_id: uuid.UUID, room_id: uuid.UUID) -> None:
     room = await get_room(session, tenant_id, room_id)
     room.is_active = False
-    await session.flush()
+    await session.commit()

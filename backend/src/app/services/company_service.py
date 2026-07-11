@@ -21,5 +21,5 @@ async def update_company(session: AsyncSession, tenant_id: uuid.UUID, data: Comp
     company = await get_company(session, tenant_id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(company, field, value)
-    await session.flush()
+    await session.commit()
     return company

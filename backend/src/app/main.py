@@ -13,7 +13,7 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ValidationError,
 )
-from app.routers import auth, clients, companies, employees, rooms, services
+from app.routers import appointments, auth, clients, companies, employees, rooms, services
 
 # Without this, app.* loggers (e.g. the console notification/email/payment
 # providers) are silently swallowed: a logger with no handler configured
@@ -56,6 +56,7 @@ app.include_router(employees.router, prefix="/employees", tags=["employees"])
 app.include_router(clients.router, prefix="/clients", tags=["clients"])
 app.include_router(services.router, prefix="/services", tags=["services"])
 app.include_router(rooms.router, prefix="/rooms", tags=["rooms"])
+app.include_router(appointments.router, prefix="/appointments", tags=["appointments"])
 
 
 @app.get("/health")

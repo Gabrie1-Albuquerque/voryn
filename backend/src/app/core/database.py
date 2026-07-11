@@ -58,28 +58,33 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_tenant_db(
     token: str | None = Depends(oauth2_scheme),
 ) -> AsyncGenerator[AsyncSession, None]:
-    """One session per request, with exactly one commit point: right here,
-    after the route handler returns successfully. Resolves the tenant
-    straight from the JWT (no DB round-trip needed, unlike login itself) and
-    sets RLS context before any route code can run a query.
+    """One session per request. Resolves the tenant straight from the JWT (no
+    DB round-trip needed, unlike login itself) and sets RLS context before
+    any route code can run a query.
 
-    Services must use session.flush() (not commit()) when they need
-    server-generated values (ids, defaults) populated mid-request --
-    committing ends the transaction that the tenant's SET LOCAL context
-    lives in, so anything that queries again afterwards (a refresh, a
-    re-fetch-with-relations) hits Postgres with no tenant context set and
-    RLS rejects it. This bit for real building CRUD endpoints: create/update
-    handlers that committed then re-queried started failing with "invalid
-    input syntax for type uuid: ''" (the RLS policy casting the now-empty
-    GUC), and it was silent in tests because the test fixtures wrap
-    everything in one outer transaction via savepoints, which never hits a
-    real commit boundary. One commit per request, here, is what makes it
-    impossible for service code to reintroduce this.
+    Does NOT commit after yield -- an earlier version did, on the theory
+    that a single commit point here would stop service code from committing
+    mid-request and losing RLS context on a subsequent query (a real bug,
+    see set_tenant_context's docstring history). That theory was correct but
+    the mechanism was wrong: FastAPI/Starlette runs a yield-dependency's
+    post-yield code AFTER the response has already been sent to the client,
+    not before. Confirmed by reproducing it directly: POST an employee, then
+    immediately GET it back with no delay, and it 404s -- the client
+    receives "201 Created" before the INSERT's transaction actually commits.
+    Waiting ~1s made it consistently visible, i.e. this was never "usually
+    fine", it was a real, always-present race, just one easy to not notice
+    by hand.
 
-    If the route handler raises, this generator never reaches the commit
-    line below (FastAPI throws the exception in at the yield point) and the
-    `async with` block's own cleanup rolls back on exit, so no explicit
-    except/rollback is needed here.
+    The actual fix: every service function that writes calls
+    session.commit() itself, as its last line, after any re-fetch-with-
+    relations it needs (which must happen via flush(), before that commit,
+    to keep RLS context for it) -- see e.g. employee_service.create_employee
+    for the shape. That makes the commit part of the route handler's own
+    synchronous execution, which necessarily finishes before FastAPI builds
+    the response at all. This dependency's job is now just providing a
+    correctly tenant-scoped session and, on an exception, doing nothing --
+    the `async with` block's own cleanup rolls back automatically since
+    nothing here commits.
     """
     if token is None:
         raise AuthenticationError("missing bearer token")
@@ -94,4 +99,3 @@ async def get_tenant_db(
     async with async_session_factory() as session:
         await set_tenant_context(session, tenant_id)
         yield session
-        await session.commit()

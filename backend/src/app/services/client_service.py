@@ -21,7 +21,7 @@ async def get_client(session: AsyncSession, tenant_id: uuid.UUID, client_id: uui
 
 async def create_client(session: AsyncSession, tenant_id: uuid.UUID, data: ClientCreateRequest) -> Client:
     client = ClientRepository(session, tenant_id).add(Client(**data.model_dump()))
-    await session.flush()
+    await session.commit()
     return client
 
 
@@ -31,14 +31,14 @@ async def update_client(
     client = await get_client(session, tenant_id, client_id)
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(client, field, value)
-    await session.flush()
+    await session.commit()
     return client
 
 
 async def deactivate_client(session: AsyncSession, tenant_id: uuid.UUID, client_id: uuid.UUID) -> None:
     client = await get_client(session, tenant_id, client_id)
     client.is_active = False
-    await session.flush()
+    await session.commit()
 
 
 async def list_notes(session: AsyncSession, tenant_id: uuid.UUID, client_id: uuid.UUID) -> list[ClientNote]:
@@ -63,5 +63,5 @@ async def add_note(
             appointment_id=data.appointment_id,
         )
     )
-    await session.flush()
+    await session.commit()
     return note
