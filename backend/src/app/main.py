@@ -5,8 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import get_settings
-from app.core.exceptions import AppError, AuthenticationError, ConflictError, NotFoundError, PermissionDeniedError
-from app.routers import auth
+from app.core.exceptions import (
+    AppError,
+    AuthenticationError,
+    ConflictError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
+from app.routers import auth, clients, companies, employees, rooms, services
 
 # Without this, app.* loggers (e.g. the console notification/email/payment
 # providers) are silently swallowed: a logger with no handler configured
@@ -33,6 +40,7 @@ _STATUS_BY_ERROR = {
     PermissionDeniedError: 403,
     NotFoundError: 404,
     ConflictError: 409,
+    ValidationError: 400,
 }
 
 
@@ -43,6 +51,11 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(companies.router, prefix="/companies", tags=["companies"])
+app.include_router(employees.router, prefix="/employees", tags=["employees"])
+app.include_router(clients.router, prefix="/clients", tags=["clients"])
+app.include_router(services.router, prefix="/services", tags=["services"])
+app.include_router(rooms.router, prefix="/rooms", tags=["rooms"])
 
 
 @app.get("/health")

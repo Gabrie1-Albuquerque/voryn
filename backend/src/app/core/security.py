@@ -6,12 +6,22 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
+from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 
 from app.core.config import get_settings
 from app.models.enums import UserRole
 
 settings = get_settings()
+
+# Lives here (not core/deps.py or core/database.py) because both of those
+# need it and importing it from either of them into the other would be
+# circular; security.py is a leaf module neither depends on.
+# tokenUrl only populates OpenAPI's "Authorize" button (path as FastAPI
+# itself sees it, without the /api prefix nginx strips before proxying
+# here); the actual login endpoint is JSON, not form-encoded, unlike the
+# OAuth2 password flow this class is nominally modeling.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 # Argon2 (pwdlib's recommended default): passlib -- the older, more common
 # choice -- has an unresolved compatibility break with current bcrypt
 # releases (its version-sniffing expects an attribute recent bcrypt versions

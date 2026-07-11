@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.core.deps import CurrentUser, get_current_user, get_tenant_db
+from app.core.database import get_db, get_tenant_db
+from app.core.deps import CurrentUser, get_current_user
 from app.core.exceptions import NotFoundError
 from app.repositories.user_repository import UserRepository
 from app.services import auth_service

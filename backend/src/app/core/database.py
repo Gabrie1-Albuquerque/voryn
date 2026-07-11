@@ -2,10 +2,14 @@ import uuid
 from collections.abc import AsyncGenerator
 from typing import Protocol
 
+import jwt
+from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
+from app.core.exceptions import AuthenticationError
+from app.core.security import decode_token, oauth2_scheme
 
 settings = get_settings()
 
@@ -43,10 +47,51 @@ async def set_tenant_context(executor: ExecutesSQL, tenant_id: uuid.UUID) -> Non
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Plain, tenant-agnostic session dependency. Routes that need tenant
-    scoping should depend on `get_tenant_db` (core/deps.py) instead, which
-    layers `set_tenant_context` on top of this after resolving the tenant
-    from the request (JWT for authenticated routes, slug for public ones).
+    """Plain, tenant-agnostic session dependency, for routes that run before
+    a tenant is known at all (e.g. login itself). Routes that need tenant
+    scoping should depend on `get_tenant_db` instead.
     """
     async with async_session_factory() as session:
         yield session
+
+
+async def get_tenant_db(
+    token: str | None = Depends(oauth2_scheme),
+) -> AsyncGenerator[AsyncSession, None]:
+    """One session per request, with exactly one commit point: right here,
+    after the route handler returns successfully. Resolves the tenant
+    straight from the JWT (no DB round-trip needed, unlike login itself) and
+    sets RLS context before any route code can run a query.
+
+    Services must use session.flush() (not commit()) when they need
+    server-generated values (ids, defaults) populated mid-request --
+    committing ends the transaction that the tenant's SET LOCAL context
+    lives in, so anything that queries again afterwards (a refresh, a
+    re-fetch-with-relations) hits Postgres with no tenant context set and
+    RLS rejects it. This bit for real building CRUD endpoints: create/update
+    handlers that committed then re-queried started failing with "invalid
+    input syntax for type uuid: ''" (the RLS policy casting the now-empty
+    GUC), and it was silent in tests because the test fixtures wrap
+    everything in one outer transaction via savepoints, which never hits a
+    real commit boundary. One commit per request, here, is what makes it
+    impossible for service code to reintroduce this.
+
+    If the route handler raises, this generator never reaches the commit
+    line below (FastAPI throws the exception in at the yield point) and the
+    `async with` block's own cleanup rolls back on exit, so no explicit
+    except/rollback is needed here.
+    """
+    if token is None:
+        raise AuthenticationError("missing bearer token")
+    try:
+        claims = decode_token(token)
+    except jwt.PyJWTError as exc:
+        raise AuthenticationError("invalid or expired token") from exc
+    if claims.get("type") != "access":
+        raise AuthenticationError("not an access token")
+
+    tenant_id = uuid.UUID(claims["tenant_id"])
+    async with async_session_factory() as session:
+        await set_tenant_context(session, tenant_id)
+        yield session
+        await session.commit()

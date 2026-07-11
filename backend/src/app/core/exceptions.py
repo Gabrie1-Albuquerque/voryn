@@ -18,3 +18,11 @@ class NotFoundError(AppError):
 
 class ConflictError(AppError):
     """-> 409. e.g. scheduling conflicts, a unique constraint violation surfaced as a domain concept."""
+
+
+class ValidationError(AppError):
+    """-> 400. Business-rule validation that can't be expressed as a Pydantic
+    schema constraint alone -- typically because it only applies after
+    merging a partial update (PATCH) with existing state, unlike a create
+    request's shape, which Pydantic validators already cover.
+    """

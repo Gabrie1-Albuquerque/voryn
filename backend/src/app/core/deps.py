@@ -1,22 +1,13 @@
 import uuid
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import jwt
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import async_session_factory, set_tenant_context
 from app.core.exceptions import AuthenticationError, PermissionDeniedError
-from app.core.security import decode_token
+from app.core.security import decode_token, oauth2_scheme
 from app.models.enums import UserRole
-
-# tokenUrl is only used to populate OpenAPI's "Authorize" button (path as
-# FastAPI itself sees it, without the /api prefix nginx strips before
-# proxying here); the actual login endpoint is JSON, not form-encoded,
-# unlike the OAuth2 password flow this class is nominally modeling.
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 
 @dataclass(frozen=True)
@@ -24,29 +15,6 @@ class CurrentUser:
     user_id: uuid.UUID
     tenant_id: uuid.UUID
     role: UserRole
-
-
-async def get_tenant_db(
-    token: str | None = Depends(oauth2_scheme),
-) -> AsyncGenerator[AsyncSession, None]:
-    """One session per request. Resolves the tenant straight from the JWT
-    (no DB round-trip needed, unlike login itself) and sets RLS context
-    before any route code can run a query -- so every authenticated route
-    gets tenant-scoped queries for free just by depending on this.
-    """
-    if token is None:
-        raise AuthenticationError("missing bearer token")
-    try:
-        claims = decode_token(token)
-    except jwt.PyJWTError as exc:
-        raise AuthenticationError("invalid or expired token") from exc
-    if claims.get("type") != "access":
-        raise AuthenticationError("not an access token")
-
-    tenant_id = uuid.UUID(claims["tenant_id"])
-    async with async_session_factory() as session:
-        await set_tenant_context(session, tenant_id)
-        yield session
 
 
 async def get_current_user(
