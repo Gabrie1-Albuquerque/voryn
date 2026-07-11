@@ -10,7 +10,17 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
 
-    database_url: str = "postgresql+asyncpg://app:app@postgres:5432/app"
+    # Restricted, non-superuser role -- this is what the running app and worker
+    # use for every request. Row-Level Security only works as a real defense
+    # (not just documentation) against a role that cannot bypass it, so this
+    # must never point at the Postgres superuser role.
+    database_url: str = "postgresql+asyncpg://app_runtime:app_runtime@postgres:5432/app"
+    # Superuser/owner role, used ONLY by Alembic: creating types/tables/RLS
+    # policies and the app_runtime role itself requires ownership privileges
+    # that app_runtime deliberately does not have.
+    migrations_database_url: str = "postgresql+asyncpg://app:app@postgres:5432/app"
+    app_runtime_db_password: str = "app_runtime"
+
     redis_url: str = "redis://redis:6379/0"
 
     jwt_secret_key: str = "change-me-in-.env"

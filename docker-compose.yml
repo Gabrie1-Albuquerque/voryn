@@ -37,7 +37,12 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@postgres:5432/${POSTGRES_DB:-app}
+      # Restricted role (see migration 0001): the only one the running app
+      # ever uses, so RLS actually applies. The superuser role above is for
+      # Alembic (migrations_database_url) only.
+      DATABASE_URL: postgresql+asyncpg://app_runtime:${APP_RUNTIME_DB_PASSWORD:-app_runtime}@postgres:5432/${POSTGRES_DB:-app}
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:-app}@postgres:5432/${POSTGRES_DB:-app}
+      APP_RUNTIME_DB_PASSWORD: ${APP_RUNTIME_DB_PASSWORD:-app_runtime}
       REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
