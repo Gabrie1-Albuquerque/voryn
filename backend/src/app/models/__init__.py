@@ -5,6 +5,7 @@ string-based relationship() references resolve regardless of import order.
 
 from app.models.base import Base
 from app.models.appointment import Appointment, AppointmentStatusHistory, WaitlistEntry
+from app.models.auth import RefreshToken
 from app.models.catalog import Room, Service, employee_service_association
 from app.models.client import Client, ClientNote
 from app.models.notification import NotificationLog
@@ -15,6 +16,7 @@ __all__ = [
     "Base",
     "Company",
     "User",
+    "RefreshToken",
     "Employee",
     "EmployeeAvailability",
     "Client",

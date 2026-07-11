@@ -23,12 +23,18 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://redis:6379/0"
 
-    jwt_secret_key: str = "change-me-in-.env"
+    # Placeholder only, long enough to not trip PyJWT's minimum-key-length
+    # warning -- .env.example instructs generating a real random secret
+    # (`openssl rand -hex 32`) before any real deployment.
+    jwt_secret_key: str = "change-me-in-.env-this-is-a-placeholder-not-a-real-secret"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
 
     cors_origins: list[str] = ["http://localhost:5173", "http://localhost:8080"]
+    # Base URL the frontend is served at, used to build links sent in emails
+    # (password reset, etc.) -- not an API base, a browser-facing one.
+    public_app_url: str = "http://localhost:8080"
 
     notification_provider: str = "console"  # console | whatsapp_cloud | zapi
     payment_provider: str = "mock"  # mock | mercadopago
