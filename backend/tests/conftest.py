@@ -1,10 +1,11 @@
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
 import pytest
 import pytest_asyncio
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
 from app.core.database import set_tenant_context
@@ -64,6 +65,66 @@ async def make_tenant(
         return tenant_id
 
     return _make_tenant
+
+
+@pytest_asyncio.fixture
+async def real_session_factory():
+    """Opens a fresh, tenant-scoped session against a REAL engine (own
+    connection pool, disposed at teardown) -- the real-commit counterpart to
+    db_session, and the real-commit equivalent of what get_tenant_db/
+    get_tenant_db_by_slug hand each request in the actual app. Callers open
+    one of these per logical "request" being simulated, same as the real app
+    would.
+
+    Needs its own engine rather than reusing app.core.database's
+    module-level one: that engine's pool persists across test functions,
+    but pytest-asyncio gives each test function its own event loop by
+    default, and asyncpg connections are bound to the loop they were
+    created on -- reusing a pooled connection from a different test's loop
+    crashes with "Future attached to a different loop". db_connection
+    (above) sidesteps this the same way, with its own fresh engine per test.
+    """
+    engine = create_async_engine(settings.database_url, pool_pre_ping=True)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False, autoflush=False)
+
+    @asynccontextmanager
+    async def _open(tenant_id: uuid.UUID) -> AsyncGenerator[AsyncSession, None]:
+        async with session_factory() as session:
+            await set_tenant_context(session, tenant_id)
+            yield session
+
+    try:
+        yield _open
+    finally:
+        await engine.dispose()
+
+
+@pytest_asyncio.fixture
+async def real_tenant(real_session_factory) -> AsyncGenerator[uuid.UUID, None]:
+    """Unlike make_tenant, this commits for real -- required for any test
+    that exercises commit/transaction-boundary behavior (e.g.
+    set_tenant_context's SET LOCAL surviving -- or not -- across more than
+    one commit within a session). db_session's session.commit() is secretly
+    just a SAVEPOINT release (join_transaction_mode="create_savepoint"), so
+    it can never revert a transaction-local set_config the way a real COMMIT
+    does; tests built on it would stay green even if this exact class of bug
+    came back. No rollback safety net here once a real commit has happened,
+    so cleanup is explicit (deleting the Company CASCADEs to every
+    tenant-owned row).
+    """
+    tenant_id = uuid.uuid4()
+    async with real_session_factory(tenant_id) as session:
+        await session.execute(
+            text("INSERT INTO companies (id, slug, name) VALUES (:id, :slug, :name)"),
+            {"id": tenant_id, "slug": f"real-{tenant_id.hex[:8]}", "name": "Real Commit Test Co"},
+        )
+        await session.commit()
+    try:
+        yield tenant_id
+    finally:
+        async with real_session_factory(tenant_id) as session:
+            await session.execute(text("DELETE FROM companies WHERE id = :id"), {"id": tenant_id})
+            await session.commit()
 
 
 @pytest.fixture

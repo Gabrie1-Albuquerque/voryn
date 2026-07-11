@@ -90,3 +90,45 @@ export interface Appointment {
   source: AppointmentSource;
   notes: string | null;
 }
+
+export type PaymentStatus = "pending" | "approved" | "rejected" | "refunded";
+
+export interface PublicCompany {
+  name: string;
+  slug: string;
+  timezone: string;
+}
+
+export interface PublicService {
+  id: string;
+  name: string;
+  duration_minutes: number;
+  price: string;
+  deposit_required: boolean;
+  deposit_type: DepositType | null;
+  deposit_value: string | null;
+}
+
+export interface PublicEmployee {
+  id: string;
+  name: string;
+  service_ids: string[];
+}
+
+export interface AvailabilityResponse {
+  slots: string[];
+}
+
+export interface PublicBooking {
+  id: string;
+  status: AppointmentStatus;
+  starts_at: string;
+  ends_at: string;
+  service_name: string;
+  employee_name: string;
+  deposit_required: boolean;
+  deposit_amount: string | null;
+  payment_status: PaymentStatus | null;
+  pix_qr_code: string | null;
+  checkout_url: string | null;
+}

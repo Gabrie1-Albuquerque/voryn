@@ -13,7 +13,19 @@ from app.core.exceptions import (
     PermissionDeniedError,
     ValidationError,
 )
-from app.routers import appointments, auth, clients, companies, employees, payments, rooms, services, waitlist, webhooks
+from app.routers import (
+    appointments,
+    auth,
+    clients,
+    companies,
+    employees,
+    payments,
+    public_booking,
+    rooms,
+    services,
+    waitlist,
+    webhooks,
+)
 
 # Without this, app.* loggers (e.g. the console notification/email/payment
 # providers) are silently swallowed: a logger with no handler configured
@@ -62,6 +74,7 @@ app.include_router(appointments.router, prefix="/appointments", tags=["appointme
 app.include_router(payments.router, tags=["payments"])
 app.include_router(waitlist.router, prefix="/waitlist", tags=["waitlist"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
+app.include_router(public_booking.router, prefix="/public", tags=["public-booking"])
 
 
 @app.get("/health")

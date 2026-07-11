@@ -31,5 +31,15 @@ class PaymentRecord(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
         pg_enum(PaymentStatus, "payment_status"), default=PaymentStatus.PENDING, index=True
     )
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Persisted despite being provider-response data, not app state: the first
+    # consumer of a PENDING PIX charge is now the public booking page (an
+    # unauthenticated client on their own device), where losing the tab or
+    # reloading mid-payment is normal PIX usage, not an edge case -- unlike
+    # the staff-facing deposit screen this was originally written for, which
+    # stays on one continuous screen. Mercado Pago's own status-refresh
+    # endpoint doesn't re-return this, so it must be captured once at charge
+    # creation or it's gone forever.
+    pix_qr_code: Mapped[str | None] = mapped_column(Text, nullable=True)
+    checkout_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     appointment: Mapped["Appointment"] = relationship(back_populates="payments")

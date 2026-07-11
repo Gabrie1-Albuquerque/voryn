@@ -88,6 +88,8 @@ async def create_deposit_charge(
         description=f"Sinal - {service.name}",
     )
     record.provider_reference_id = charge.provider_reference_id
+    record.pix_qr_code = charge.pix_qr_code
+    record.checkout_url = charge.checkout_url
     record.status = _CHARGE_STATUS_TO_PAYMENT_STATUS[charge.status]
     if record.status == PaymentStatus.APPROVED:
         record.paid_at = datetime.now(timezone.utc)
