@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { cancelAppointment, completeAppointment, confirmAppointment } from "../../api/appointments";
+import { cancelAppointment, completeAppointment, confirmAppointment, markAppointmentNoShow } from "../../api/appointments";
 import type { Appointment } from "../../api/types";
 import { ApiError } from "../../lib/api";
 import { Modal } from "../../components/Modal";
@@ -46,10 +46,19 @@ export function AppointmentDetailsModal({ appointment, onClose, onChanged }: Pro
     },
     onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Ação falhou."),
   });
+  const noShowMutation = useMutation({
+    mutationFn: markAppointmentNoShow,
+    onSuccess: () => {
+      onChanged();
+      onClose();
+    },
+    onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Ação falhou."),
+  });
 
   if (!appointment) return null;
 
-  const isPending = confirmMutation.isPending || cancelMutation.isPending || completeMutation.isPending;
+  const isPending =
+    confirmMutation.isPending || cancelMutation.isPending || completeMutation.isPending || noShowMutation.isPending;
 
   return (
     <Modal title="Detalhes do agendamento" onClose={onClose}>
@@ -67,7 +76,8 @@ export function AppointmentDetailsModal({ appointment, onClose, onChanged }: Pro
           <strong>Início:</strong> {new Date(appointment.starts_at).toLocaleString("pt-BR")}
         </p>
         <p>
-          <strong>Status:</strong> {STATUS_LABELS[appointment.status]}
+          <strong>Status:</strong>{" "}
+          {appointment.status === "cancelled" && appointment.is_no_show ? "Falta" : STATUS_LABELS[appointment.status]}
         </p>
         {error && <p className="error-text">{error}</p>}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -79,6 +89,11 @@ export function AppointmentDetailsModal({ appointment, onClose, onChanged }: Pro
           {appointment.status === "confirmed" && (
             <button disabled={isPending} onClick={() => completeMutation.mutate(appointment.id)}>
               Concluir
+            </button>
+          )}
+          {appointment.status === "confirmed" && (
+            <button disabled={isPending} onClick={() => noShowMutation.mutate(appointment.id)}>
+              Marcar falta
             </button>
           )}
           {(appointment.status === "pending" || appointment.status === "confirmed") && (

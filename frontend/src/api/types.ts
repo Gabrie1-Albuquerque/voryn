@@ -89,6 +89,7 @@ export interface Appointment {
   status: AppointmentStatus;
   source: AppointmentSource;
   notes: string | null;
+  is_no_show: boolean;
 }
 
 export type PaymentStatus = "pending" | "approved" | "rejected" | "refunded";
@@ -131,4 +132,20 @@ export interface PublicBooking {
   payment_status: PaymentStatus | null;
   pix_qr_code: string | null;
   checkout_url: string | null;
+}
+
+export interface TopServiceEntry {
+  name: string;
+  completed_count: number;
+  revenue: string;
+}
+
+export interface DashboardSummary {
+  period_start: string;
+  period_end: string;
+  projected_revenue: string;
+  realized_revenue: string;
+  no_show_rate: number | null;
+  occupancy_rate: number | null;
+  top_services: TopServiceEntry[];
 }

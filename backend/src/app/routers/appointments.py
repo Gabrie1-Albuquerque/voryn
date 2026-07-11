@@ -124,6 +124,19 @@ async def cancel_appointment(
     return AppointmentResponse.from_model(appointment)
 
 
+@router.post("/{appointment_id}/no-show", response_model=AppointmentResponse)
+async def mark_appointment_no_show(
+    appointment_id: uuid.UUID,
+    current_user: CurrentUser = Depends(_ANY_ROLE),
+    db: AsyncSession = Depends(get_tenant_db),
+) -> AppointmentResponse:
+    await _get_in_scope(appointment_id, current_user, db)
+    appointment = await appointment_service.cancel_appointment(
+        db, current_user.tenant_id, appointment_id, changed_by=str(current_user.user_id), is_no_show=True
+    )
+    return AppointmentResponse.from_model(appointment)
+
+
 @router.post("/{appointment_id}/complete", response_model=AppointmentResponse)
 async def complete_appointment(
     appointment_id: uuid.UUID,

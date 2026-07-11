@@ -21,6 +21,7 @@ class AppointmentResponse(BaseModel):
     status: AppointmentStatus
     source: AppointmentSource
     notes: str | None
+    is_no_show: bool
 
     @classmethod
     def from_model(cls, appointment) -> "AppointmentResponse":
@@ -39,6 +40,7 @@ class AppointmentResponse(BaseModel):
             status=appointment.status,
             source=appointment.source,
             notes=appointment.notes,
+            is_no_show=appointment.is_no_show,
         )
 
 

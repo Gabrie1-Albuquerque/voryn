@@ -276,9 +276,16 @@ async def complete_appointment(
 
 
 async def cancel_appointment(
-    session: AsyncSession, tenant_id: uuid.UUID, appointment_id: uuid.UUID, *, changed_by: str
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    appointment_id: uuid.UUID,
+    *,
+    changed_by: str,
+    is_no_show: bool = False,
 ) -> Appointment:
     appointment = await get_appointment(session, tenant_id, appointment_id)
+    if is_no_show:
+        appointment.is_no_show = True
     result = await _transition(session, tenant_id, appointment, AppointmentStatus.CANCELLED, changed_by=changed_by)
     await notification_service.send_notification(
         session,

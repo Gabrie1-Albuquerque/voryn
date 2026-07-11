@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Index, Text, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Text, text
 from sqlalchemy.dialects.postgresql import UUID, ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -49,6 +49,14 @@ class Appointment(UUIDPrimaryKeyMixin, TimestampMixin, TenantMixin, Base):
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+    # A no-show is modeled as a CANCELLED appointment with this flag set,
+    # not a separate terminal status: CANCELLED already has the right side
+    # effects everywhere (excluded from the conflict exclusion constraints,
+    # from has_conflict(), frees the slot, triggers waitlist promotion) --
+    # a distinct status would need every one of those taught about it too.
+    # This flag exists solely so the dashboard's taxa de faltas (Milestone
+    # 10) has a real, reliable signal instead of an inference over timing.
+    is_no_show: Mapped[bool] = mapped_column(Boolean, default=False)
 
     client: Mapped["Client"] = relationship()
     employee: Mapped["Employee"] = relationship(back_populates="appointments")

@@ -33,3 +33,7 @@ export function cancelAppointment(id: string): Promise<Appointment> {
 export function completeAppointment(id: string): Promise<Appointment> {
   return apiRequest(`/appointments/${id}/complete`, { method: "POST" });
 }
+
+export function markAppointmentNoShow(id: string): Promise<Appointment> {
+  return apiRequest(`/appointments/${id}/no-show`, { method: "POST" });
+}

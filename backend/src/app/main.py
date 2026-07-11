@@ -18,6 +18,7 @@ from app.routers import (
     auth,
     clients,
     companies,
+    dashboard,
     employees,
     payments,
     public_booking,
@@ -75,6 +76,7 @@ app.include_router(payments.router, tags=["payments"])
 app.include_router(waitlist.router, prefix="/waitlist", tags=["waitlist"])
 app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 app.include_router(public_booking.router, prefix="/public", tags=["public-booking"])
+app.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 
 
 @app.get("/health")

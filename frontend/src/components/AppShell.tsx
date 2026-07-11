@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { to: "/app/clientes", label: "Clientes" },
   { to: "/app/funcionarios", label: "Funcionários" },
   { to: "/app/catalogo", label: "Serviços & Salas" },
+  { to: "/app/dashboard", label: "Dashboard" },
 ];
 
 export function AppShell() {
