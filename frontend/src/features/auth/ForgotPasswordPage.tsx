@@ -28,8 +28,8 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
-      <div className="card" style={{ width: 340, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="auth-shell">
+      <div className="card auth-card">
         <h1>Esqueci minha senha</h1>
         {sent ? (
           <p>Se esse email tiver uma conta, enviamos um link para redefinir a senha.</p>

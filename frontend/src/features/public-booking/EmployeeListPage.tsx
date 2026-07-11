@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { listPublicEmployees, listPublicServices } from "../../api/publicBooking";
+import { BookingSteps } from "./BookingSteps";
 
 export function EmployeeListPage() {
   const { slug = "", serviceId = "" } = useParams();
@@ -22,8 +24,10 @@ export function EmployeeListPage() {
 
   return (
     <div>
+      <BookingSteps current={2} />
       <Link to={`/booking/${slug}`} className="public-booking-back">
-        &larr; Voltar
+        <ArrowLeft size={15} />
+        Voltar
       </Link>
       <h2>{service ? `Profissional para ${service.name}` : "Escolha o profissional"}</h2>
       <div className="public-booking-list">
@@ -33,7 +37,10 @@ export function EmployeeListPage() {
             to={`/booking/${slug}/service/${serviceId}/employee/${employee.id}`}
             className="card public-booking-option"
           >
-            <strong>{employee.name}</strong>
+            <span className="public-booking-option-icon">{employee.name.charAt(0).toUpperCase()}</span>
+            <span className="public-booking-option-body">
+              <strong>{employee.name}</strong>
+            </span>
           </Link>
         ))}
         {employeesQuery.isSuccess && qualifiedEmployees.length === 0 && (

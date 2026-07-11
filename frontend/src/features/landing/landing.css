@@ -1,0 +1,582 @@
+.landing {
+  background: var(--bg);
+  color: var(--text);
+}
+
+.landing-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* --- Header ------------------------------------------------------------- */
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+.landing-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-h);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  margin-right: auto;
+}
+
+.landing-brand-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--gradient-brand);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.landing-header .ghost-link {
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: color var(--transition), background var(--transition);
+}
+
+.landing-header .ghost-link:hover {
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+}
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--whatsapp);
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  font-size: 14px;
+  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.btn-whatsapp:hover {
+  background: var(--whatsapp-strong);
+  box-shadow: rgba(29, 170, 97, 0.4) 0 6px 18px -6px;
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+.btn-whatsapp.lg {
+  padding: 14px 26px;
+  font-size: 16px;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 22px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  transition: border-color var(--transition), color var(--transition);
+}
+
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* --- Hero ---------------------------------------------------------------- */
+.landing-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 72px 0 80px;
+  background:
+    radial-gradient(55% 60% at 85% 10%, rgba(124, 58, 237, 0.14) 0%, transparent 70%),
+    radial-gradient(40% 50% at 5% 90%, rgba(79, 70, 229, 0.1) 0%, transparent 70%),
+    var(--bg);
+}
+
+.landing-hero-inner {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .landing-hero-inner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 20px;
+}
+
+.landing-hero h1 {
+  font-size: clamp(32px, 4.5vw, 46px);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin-bottom: 18px;
+}
+
+.landing-hero h1 .grad {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.landing-hero-sub {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 480px;
+  margin-bottom: 28px;
+}
+
+.landing-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.landing-hero-trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.landing-hero-trust span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Decorative product mock: agenda card + WhatsApp conversation card */
+.hero-mock {
+  position: relative;
+  min-height: 380px;
+}
+
+.hero-mock-agenda {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  width: 270px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+}
+
+.hero-mock-agenda-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-mock-slot {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+}
+
+.hero-mock-slot strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-mock-slot.a {
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+}
+.hero-mock-slot.b {
+  background: var(--success-bg);
+  color: var(--success);
+}
+.hero-mock-slot.c {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.hero-mock-chat {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 290px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+}
+
+.hero-mock-chat-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 12px;
+}
+
+.hero-mock-chat-title .wa-dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--whatsapp);
+  color: #fff;
+}
+
+.hero-bubble {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  max-width: 92%;
+}
+
+.hero-bubble.in {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+
+.hero-bubble.out {
+  background: #dcf8e7;
+  color: #14532d;
+  margin-left: auto;
+  border-bottom-right-radius: 4px;
+  width: fit-content;
+  font-weight: 600;
+}
+
+.hero-bubble.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+/* --- Generic sections ----------------------------------------------------- */
+.landing-section {
+  padding: 72px 0;
+}
+
+.landing-section.alt {
+  background: var(--bg-subtle);
+}
+
+.landing-section-head {
+  max-width: 640px;
+  margin: 0 auto 44px;
+  text-align: center;
+}
+
+.landing-section-head h2 {
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.landing-section-head p {
+  color: var(--muted);
+  font-size: 16px;
+}
+
+/* Pain/solution trio + feature grid share the card grid */
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+@media (max-width: 860px) {
+  .landing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 860px) {
+  .landing-grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+}
+
+.landing-card:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.landing-card-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--accent-bg);
+  color: var(--accent-strong);
+  margin-bottom: 14px;
+}
+
+.landing-card h3 {
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.landing-card p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.landing-card .pain {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+
+/* --- How it works: numbered steps ---------------------------------------- */
+.landing-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  counter-reset: step;
+}
+
+@media (max-width: 860px) {
+  .landing-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-step {
+  position: relative;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.landing-step-num {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.landing-step h3 {
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.landing-step p {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* --- "More than a bot" checklist ------------------------------------------ */
+.landing-vs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+@media (max-width: 860px) {
+  .landing-vs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-vs h2 {
+  font-size: clamp(24px, 3vw, 30px);
+  letter-spacing: -0.02em;
+}
+
+.landing-vs > div > p {
+  color: var(--muted);
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+
+.landing-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.landing-checklist li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 16px;
+  font-size: 14.5px;
+}
+
+.landing-checklist .check {
+  color: var(--success);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* --- Segments chips -------------------------------------------------------- */
+.landing-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.landing-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 9px 18px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+/* --- Final CTA band --------------------------------------------------------- */
+.landing-cta-band {
+  background: var(--gradient-brand);
+  border-radius: var(--radius-lg);
+  padding: 52px 32px;
+  text-align: center;
+  color: #fff;
+  box-shadow: var(--shadow-accent);
+}
+
+.landing-cta-band h2 {
+  color: #fff;
+  font-size: clamp(22px, 3vw, 30px);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.landing-cta-band p {
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 24px;
+  font-size: 16px;
+}
+
+.landing-cta-band .btn-whatsapp {
+  background: #fff;
+  color: var(--accent-strong);
+}
+
+.landing-cta-band .btn-whatsapp:hover {
+  background: #f3f0fc;
+  color: var(--accent-strong);
+}
+
+/* --- Footer ------------------------------------------------------------------ */
+.landing-footer {
+  border-top: 1px solid var(--border);
+  padding: 36px 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.landing-footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.landing-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.landing-footer a:hover {
+  color: var(--accent-strong);
+}

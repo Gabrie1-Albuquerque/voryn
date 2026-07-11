@@ -1,55 +1,44 @@
+import { BarChart3, CalendarCheck, CalendarDays, LogOut, Scissors, UserCog, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 const NAV_ITEMS = [
-  { to: "/app/agenda", label: "Agenda" },
-  { to: "/app/clientes", label: "Clientes" },
-  { to: "/app/funcionarios", label: "Funcionários" },
-  { to: "/app/catalogo", label: "Serviços & Salas" },
-  { to: "/app/dashboard", label: "Dashboard" },
+  { to: "/app/agenda", label: "Agenda", icon: CalendarDays },
+  { to: "/app/clientes", label: "Clientes", icon: Users },
+  { to: "/app/funcionarios", label: "Funcionários", icon: UserCog },
+  { to: "/app/catalogo", label: "Serviços & Salas", icon: Scissors },
+  { to: "/app/dashboard", label: "Dashboard", icon: BarChart3 },
 ];
 
 export function AppShell() {
   const { user, logout } = useAuth();
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <aside
-        style={{
-          width: 220,
-          borderRight: "1px solid var(--border)",
-          background: "var(--bg)",
-          padding: 16,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <h2 style={{ marginBottom: 20 }}>Agendamento</h2>
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            style={({ isActive }) => ({
-              padding: "8px 10px",
-              borderRadius: 6,
-              textDecoration: "none",
-              color: isActive ? "var(--accent)" : "var(--text)",
-              background: isActive ? "var(--accent-bg)" : "transparent",
-              fontWeight: isActive ? 600 : 400,
-            })}
-          >
-            {item.label}
+    <div className="app-shell">
+      <aside className="app-sidebar">
+        <div className="app-sidebar-brand">
+          <span className="app-sidebar-brand-icon">
+            <CalendarCheck size={19} />
+          </span>
+          Agendamentos
+        </div>
+        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} className={({ isActive }) => `app-sidebar-link${isActive ? " active" : ""}`}>
+            <Icon size={17} />
+            {label}
           </NavLink>
         ))}
-        <div style={{ marginTop: "auto", fontSize: 13 }}>
-          <p style={{ marginBottom: 8 }}>{user?.email}</p>
-          <button onClick={logout} style={{ width: "100%" }}>
+        <div className="app-sidebar-footer">
+          <p className="app-sidebar-user" title={user?.email}>
+            {user?.email}
+          </p>
+          <button className="app-sidebar-logout" onClick={logout}>
+            <LogOut size={15} />
             Sair
           </button>
         </div>
       </aside>
-      <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
+      <main className="app-main">
         <Outlet />
       </main>
     </div>

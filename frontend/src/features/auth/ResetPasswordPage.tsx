@@ -34,8 +34,8 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
-      <div className="card" style={{ width: 340, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="auth-shell">
+      <div className="card auth-card">
         <h1>Redefinir senha</h1>
         {!token && <p className="error-text">Link inválido: token ausente.</p>}
         {done ? (

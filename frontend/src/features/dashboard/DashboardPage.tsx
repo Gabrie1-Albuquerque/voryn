@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Gauge, TrendingUp, UserX, Wallet, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { getDashboardSummary } from "../../api/dashboard";
@@ -20,11 +21,33 @@ function formatPercent(value: number | null): string {
   return `${(value * 100).toFixed(1)}%`;
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+}: {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  tone: "accent" | "success" | "danger" | "warning";
+}) {
+  const tones = {
+    accent: { background: "var(--accent-bg)", color: "var(--accent-strong)" },
+    success: { background: "var(--success-bg)", color: "var(--success)" },
+    danger: { background: "var(--danger-bg)", color: "var(--danger)" },
+    warning: { background: "var(--warning-bg)", color: "var(--warning)" },
+  } as const;
+
   return (
-    <div className="card">
-      <p style={{ fontSize: 13, opacity: 0.7, marginBottom: 4 }}>{label}</p>
-      <p style={{ fontSize: 22, fontWeight: 600 }}>{value}</p>
+    <div className="card stat-card">
+      <span className="stat-card-icon" style={tones[tone]}>
+        <Icon size={20} />
+      </span>
+      <span>
+        <p className="stat-card-label">{label}</p>
+        <p className="stat-card-value">{value}</p>
+      </span>
     </div>
   );
 }
@@ -69,10 +92,10 @@ export function DashboardPage() {
               marginBottom: 20,
             }}
           >
-            <StatCard label="Receita prevista" value={`R$ ${summary.projected_revenue}`} />
-            <StatCard label="Receita realizada" value={`R$ ${summary.realized_revenue}`} />
-            <StatCard label="Taxa de faltas" value={formatPercent(summary.no_show_rate)} />
-            <StatCard label="Ocupação" value={formatPercent(summary.occupancy_rate)} />
+            <StatCard label="Receita prevista" value={`R$ ${summary.projected_revenue}`} icon={TrendingUp} tone="accent" />
+            <StatCard label="Receita realizada" value={`R$ ${summary.realized_revenue}`} icon={Wallet} tone="success" />
+            <StatCard label="Taxa de faltas" value={formatPercent(summary.no_show_rate)} icon={UserX} tone="danger" />
+            <StatCard label="Ocupação" value={formatPercent(summary.occupancy_rate)} icon={Gauge} tone="warning" />
           </div>
 
           <div className="card">

@@ -1,3 +1,4 @@
+import { CalendarCheck } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
@@ -26,8 +27,14 @@ export function LoginPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center" }}>
-      <form onSubmit={handleSubmit} className="card" style={{ width: 340, display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="auth-shell">
+      <form onSubmit={handleSubmit} className="card auth-card">
+        <div className="auth-brand">
+          <span className="auth-brand-icon">
+            <CalendarCheck size={19} />
+          </span>
+          Agendamentos
+        </div>
         <h1>Entrar</h1>
         <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           Email

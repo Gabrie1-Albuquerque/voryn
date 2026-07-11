@@ -10,6 +10,7 @@ import { CatalogPage } from "./features/catalog/CatalogPage";
 import { ClientsPage } from "./features/clients/ClientsPage";
 import { EmployeesPage } from "./features/employees/EmployeesPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
+import { LandingPage } from "./features/landing/LandingPage";
 import { PublicBookingLayout } from "./features/public-booking/PublicBookingLayout";
 import { ServiceListPage } from "./features/public-booking/ServiceListPage";
 import { EmployeeListPage } from "./features/public-booking/EmployeeListPage";
@@ -21,6 +22,8 @@ export default function App() {
     <Router>
       <AuthProvider>
         <Routes>
+          {/* Public marketing landing -- the only page a cold visitor sees */}
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />

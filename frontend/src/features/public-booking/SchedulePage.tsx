@@ -1,8 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { createPublicBooking, getPublicAvailability, listPublicEmployees, listPublicServices } from "../../api/publicBooking";
 import { PublicApiError } from "../../lib/publicApi";
+import { BookingSteps } from "./BookingSteps";
 
 function todayLocalDate(): string {
   const now = new Date();
@@ -70,8 +72,10 @@ export function SchedulePage() {
 
   return (
     <div>
+      <BookingSteps current={3} />
       <Link to={`/booking/${slug}/service/${serviceId}`} className="public-booking-back">
-        &larr; Voltar
+        <ArrowLeft size={15} />
+        Voltar
       </Link>
       <h2>
         {service?.name} com {employee?.name}

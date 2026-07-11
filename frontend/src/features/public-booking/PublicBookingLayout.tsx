@@ -13,7 +13,7 @@ export function PublicBookingLayout() {
   if (companyQuery.isLoading) {
     return (
       <div className="public-booking-shell">
-        <p>Carregando...</p>
+        <p style={{ padding: 24 }}>Carregando...</p>
       </div>
     );
   }
@@ -21,15 +21,23 @@ export function PublicBookingLayout() {
   if (companyQuery.isError || !companyQuery.data) {
     return (
       <div className="public-booking-shell">
-        <p className="error-text">Não encontramos essa página de agendamento.</p>
+        <p className="error-text" style={{ padding: 24 }}>
+          Não encontramos essa página de agendamento.
+        </p>
       </div>
     );
   }
 
+  const company = companyQuery.data;
+
   return (
     <div className="public-booking-shell">
       <header className="public-booking-header">
-        <h1>{companyQuery.data.name}</h1>
+        <span className="public-booking-avatar">{company.name.charAt(0).toUpperCase()}</span>
+        <div>
+          <h1>{company.name}</h1>
+          <p>Agendamento online</p>
+        </div>
       </header>
       <main className="public-booking-main">
         <Outlet />
