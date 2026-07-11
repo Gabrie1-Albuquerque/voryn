@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { ApiError } from "../../lib/api";
 
@@ -41,6 +41,9 @@ export function LoginPage() {
         <button type="submit" className="primary" disabled={isSubmitting}>
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>
+        <Link to="/forgot-password" style={{ fontSize: 13, textAlign: "center" }}>
+          Esqueceu a senha?
+        </Link>
       </form>
     </div>
   );

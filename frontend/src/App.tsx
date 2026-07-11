@@ -3,6 +3,8 @@ import { AuthProvider } from "./auth/AuthContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppShell } from "./components/AppShell";
 import { LoginPage } from "./features/auth/LoginPage";
+import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
+import { ResetPasswordPage } from "./features/auth/ResetPasswordPage";
 import { AgendaPage } from "./features/agenda/AgendaPage";
 import { CatalogPage } from "./features/catalog/CatalogPage";
 import { ClientsPage } from "./features/clients/ClientsPage";
@@ -20,6 +22,8 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppShell />}>
               <Route index element={<Navigate to="agenda" replace />} />

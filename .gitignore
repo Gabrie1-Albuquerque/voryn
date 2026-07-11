@@ -28,3 +28,7 @@ docker/nginx/conf.d/local.conf
 
 # Logs
 *.log
+
+# Local Postgres dumps produced by scripts/backup.sh -- real backups belong
+# off this repo/host entirely, not in version control.
+backups/
