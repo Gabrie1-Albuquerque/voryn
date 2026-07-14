@@ -69,7 +69,7 @@ Bots de agendamento param na conversa. Aqui, a conversa é só o começo:
 ### Próximo passo
 
 Demonstração rápida, com os serviços do seu negócio de verdade, sem
-compromisso: **chama no WhatsApp (48) 99952-17167** e a gente agenda — usando,
+compromisso: **chama no WhatsApp (48) 99952-7167** e a gente agenda — usando,
 claro, a própria plataforma. 😉
 
 ---

@@ -196,7 +196,11 @@
 /* Decorative product mock: agenda card + WhatsApp conversation card */
 .hero-mock {
   position: relative;
-  min-height: 380px;
+  /* Tall enough that the top-anchored agenda card and the bottom-anchored
+     chat card (each ~200px, sized by their own content) never overlap --
+     they used to collide in the middle at 380px, covering the agenda's
+     later rows. */
+  min-height: 460px;
 }
 
 .hero-mock-agenda {

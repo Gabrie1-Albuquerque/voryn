@@ -24,7 +24,7 @@ import { Link } from "react-router-dom";
 import "./landing.css";
 
 const WHATSAPP_URL =
-  "https://wa.me/55489995217167?text=" +
+  "https://wa.me/5548999527167?text=" +
   encodeURIComponent("Olá! Quero uma demonstração da plataforma de agendamentos.");
 
 function WhatsAppCta({ large, children }: { large?: boolean; children: string }) {
@@ -492,7 +492,7 @@ export function LandingPage() {
           </span>
           <span style={{ display: "flex", gap: 20 }}>
             <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">
-              WhatsApp: (48) 99952-17167
+              WhatsApp: (48) 99952-7167
             </a>
             <Link to="/login">Entrar</Link>
           </span>
