@@ -6,10 +6,13 @@
 #
 # Usage: docker compose -f docker-compose.prod.yml up -d --build
 #
-# TLS is NOT terminated here -- per the architecture in the source spec
-# (Cliente -> Cloudflare -> Nginx -> FastAPI -> Redis/PostgreSQL), a real
-# deploy puts Cloudflare (or another TLS-terminating reverse proxy) in
-# front of this nginx, forwarding plain HTTP to the port published below.
+# TLS: terminated directly by this nginx via Let's Encrypt certs obtained
+# with host-side certbot (standalone mode) -- see docker/nginx/conf.d/
+# local.conf (gitignored, created on the host, not in this repo) for the
+# HTTPS server block. Putting Cloudflare (or another TLS-terminating proxy)
+# in front instead, per the original source-spec architecture, remains a
+# reasonable alternative/upgrade -- not done here to avoid a second DNS
+# nameserver migration on top of the one already completed via Registro.br.
 services:
   postgres:
     image: postgres:16-alpine
@@ -104,8 +107,16 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      # Let's Encrypt certs live on the host (managed by certbot outside
+      # Docker); mounted read-only so nginx can serve them. Only meaningful
+      # once docker/nginx/conf.d/local.conf (gitignored, host-only -- see
+      # that file's own comment) adds an HTTPS server block referencing
+      # them. Harmless if the host path doesn't exist yet or no domain is
+      # configured -- nginx just never opens 443 for anything.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
       - frontend
