@@ -1,9 +1,11 @@
 import {
   BarChart3,
   BellRing,
+  Bot,
   CalendarCheck,
   CalendarDays,
   CheckCircle2,
+  Clock,
   Dog,
   Globe,
   HeartPulse,
@@ -43,7 +45,7 @@ export function LandingPage() {
             <span className="landing-brand-icon">
               <CalendarCheck size={19} />
             </span>
-            Plataforma Inteligente de Agendamentos
+            Voryn
           </a>
           <Link to="/login" className="ghost-link">
             Entrar
@@ -349,6 +351,130 @@ export function LandingPage() {
         </div>
       </section>
 
+      <section className="landing-section alt">
+        <div className="landing-container">
+          <div className="landing-section-head">
+            <h2>Planos e assinatura</h2>
+            <p>Implantação assistida + mensalidade. Sem contrato de fidelidade, sem letra miúda.</p>
+          </div>
+          <div className="landing-pricing">
+            <div className="pricing-card">
+              <h3>Essencial</h3>
+              <p className="pricing-tagline">Para quem está começando a automatizar a agenda.</p>
+              <div className="pricing-price">
+                <strong>R$89</strong>
+                <span>/mês, 1 profissional</span>
+              </div>
+              <ul className="pricing-features">
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Agenda visual + lembretes por WhatsApp
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Link público de agendamento 24h
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Cadastro de clientes com histórico
+                </li>
+              </ul>
+              <WhatsAppCta>Falar no WhatsApp</WhatsAppCta>
+            </div>
+            <div className="pricing-card featured">
+              <span className="pricing-badge">Mais escolhido</span>
+              <h3>Profissional</h3>
+              <p className="pricing-tagline">Para equipes com mais de um profissional e sinal via PIX.</p>
+              <div className="pricing-price">
+                <strong>R$149</strong>
+                <span>/mês, até 5 profissionais</span>
+              </div>
+              <ul className="pricing-features">
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Tudo do plano Essencial
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Sinal via PIX integrado ao agendamento
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Lista de espera automática
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Dashboard gerencial completo
+                </li>
+              </ul>
+              <WhatsAppCta large>Falar no WhatsApp</WhatsAppCta>
+            </div>
+            <div className="pricing-card">
+              <h3>Multi-unidade</h3>
+              <p className="pricing-tagline">Para negócios maiores, com várias salas ou filiais.</p>
+              <div className="pricing-price">
+                <strong>R$249</strong>
+                <span>/mês, profissionais ilimitados</span>
+              </div>
+              <ul className="pricing-features">
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Tudo do plano Profissional
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Controle de múltiplas salas/unidades
+                </li>
+                <li>
+                  <CheckCircle2 className="check" size={16} />
+                  Suporte prioritário
+                </li>
+              </ul>
+              <WhatsAppCta>Falar no WhatsApp</WhatsAppCta>
+            </div>
+          </div>
+          <p className="pricing-note">
+            + taxa de implantação única (cadastro completo e treinamento da equipe) — valor sob consulta no WhatsApp.
+          </p>
+        </div>
+      </section>
+
+      <section className="landing-section">
+        <div className="landing-container">
+          <div className="landing-p2-teaser">
+            <div>
+              <span className="landing-p2-badge">
+                <Sparkles size={13} />
+                Em breve — upsell
+              </span>
+              <h2>Que tal um funcionário que nunca dorme?</h2>
+              <p>
+                Estamos preparando um agente de IA que conversa com os seus clientes no WhatsApp, tira dúvidas e cria
+                agendamentos sozinho, 24 horas por dia — para quem não quer (ou não pode) contratar mais 2 ou 3
+                pessoas só para atendimento. Integrado direto com a sua agenda, sem sistema separado.
+              </p>
+              <WhatsAppCta>Quero saber mais</WhatsAppCta>
+            </div>
+            <div className="landing-p2-visual" aria-hidden="true">
+              <div className="hero-mock-chat" style={{ position: "static", width: "100%" }}>
+                <div className="hero-mock-chat-title">
+                  <span className="wa-dot">
+                    <Bot size={14} />
+                  </span>
+                  Atendimento automático
+                </div>
+                <div className="hero-bubble in">Vocês têm horário disponível amanhã de manhã?</div>
+                <div className="hero-bubble out">Tenho sim! Às 9h ou 10h30. Qual prefere?</div>
+                <div className="hero-bubble status">
+                  <Clock size={14} />
+                  Respondendo agora, 3h da manhã
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="landing-section" style={{ paddingTop: 0 }}>
         <div className="landing-container">
           <div className="landing-cta-band">
@@ -362,7 +488,7 @@ export function LandingPage() {
       <footer className="landing-footer">
         <div className="landing-container landing-footer-inner">
           <span>
-            <strong>Plataforma Inteligente de Agendamentos</strong> — menos faltas, agenda cheia.
+            <strong>Voryn</strong> — menos faltas, agenda cheia.
           </span>
           <span style={{ display: "flex", gap: 20 }}>
             <a href={WHATSAPP_URL} target="_blank" rel="noreferrer">

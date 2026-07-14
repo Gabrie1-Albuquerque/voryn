@@ -20,7 +20,7 @@ export function AppShell() {
           <span className="app-sidebar-brand-icon">
             <CalendarCheck size={19} />
           </span>
-          Agendamentos
+          Voryn
         </div>
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} className={({ isActive }) => `app-sidebar-link${isActive ? " active" : ""}`}>

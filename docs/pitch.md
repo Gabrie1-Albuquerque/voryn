@@ -1,4 +1,4 @@
-# Pitch comercial — Plataforma Inteligente de Agendamentos
+# Pitch comercial — Voryn
 
 > Texto pronto para prospecção (WhatsApp, Instagram, email). Ajuste o tom ao
 > canal: no WhatsApp, envie por partes; no email, use como corpo único.
@@ -14,7 +14,7 @@ já sabe a resposta: cliente que marca e não aparece é prejuízo direto. O
 horário passou, ninguém pagou, e ainda tinha gente querendo aquele mesmo
 horário.
 
-A **Plataforma Inteligente de Agendamentos** ataca esse prejuízo de três
+A **Voryn** ataca esse prejuízo de três
 frentes, tudo no automático:
 
 **1. Ninguém mais "esquece" o horário.**

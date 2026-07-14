@@ -2,6 +2,8 @@
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
 # Python
 __pycache__/
@@ -32,3 +34,7 @@ docker/nginx/conf.d/local.conf
 # Local Postgres dumps produced by scripts/backup.sh -- real backups belong
 # off this repo/host entirely, not in version control.
 backups/
+
+# Prospecting research naming real local businesses + personalized outreach
+# drafts -- working document for manual outreach, not portfolio material.
+docs/prospeccao-santo-amaro.md

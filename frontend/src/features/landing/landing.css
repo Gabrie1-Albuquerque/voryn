@@ -556,6 +556,163 @@
   color: var(--accent-strong);
 }
 
+/* --- Pricing -------------------------------------------------------------- */
+.landing-pricing {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 860px) {
+  .landing-pricing {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  transition: box-shadow var(--transition), transform var(--transition), border-color var(--transition);
+}
+
+.pricing-card:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.pricing-card.featured {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-accent);
+  position: relative;
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 24px;
+  background: var(--gradient-brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.pricing-card h3 {
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+
+.pricing-card .pricing-tagline {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+
+.pricing-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.pricing-price strong {
+  font-size: 32px;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+}
+
+.pricing-price span {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.pricing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-grow: 1;
+}
+
+.pricing-features li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  color: var(--text);
+}
+
+.pricing-features .check {
+  color: var(--success);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pricing-note {
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+  margin-top: 28px;
+}
+
+/* --- Programa 2 teaser ------------------------------------------------------ */
+.landing-p2-teaser {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 32px;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px;
+}
+
+@media (max-width: 860px) {
+  .landing-p2-teaser {
+    grid-template-columns: 1fr;
+  }
+}
+
+.landing-p2-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-strong);
+  background: var(--accent-bg);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 14px;
+}
+
+.landing-p2-teaser h2 {
+  font-size: clamp(20px, 2.6vw, 26px);
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+}
+
+.landing-p2-teaser p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.landing-p2-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* --- Footer ------------------------------------------------------------------ */
 .landing-footer {
   border-top: 1px solid var(--border);
