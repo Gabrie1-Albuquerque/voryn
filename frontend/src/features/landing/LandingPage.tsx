@@ -2,7 +2,6 @@ import {
   BarChart3,
   BellRing,
   Bot,
-  CalendarCheck,
   CalendarDays,
   CheckCircle2,
   Clock,
@@ -42,9 +41,7 @@ export function LandingPage() {
       <header className="landing-header">
         <div className="landing-header-inner">
           <a className="landing-brand" href="#">
-            <span className="landing-brand-icon">
-              <CalendarCheck size={19} />
-            </span>
+            <img src="/logo-mark.svg" alt="" width={34} height={34} className="landing-brand-icon" />
             Voryn
           </a>
           <Link to="/login" className="ghost-link">

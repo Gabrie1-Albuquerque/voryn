@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="64" viewBox="0 0 220 64" role="img">
+  <title>Voryn</title>
+  <defs>
+    <linearGradient id="voryn-grad-2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="64" height="64" rx="15" fill="url(#voryn-grad-2)"/>
+  <path d="M16 30 L27 43 L49 15" fill="none" stroke="#ffffff" stroke-width="7"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="78" y="44" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700"
+        font-size="34" letter-spacing="-0.5" fill="#1f2430">Voryn</text>
+</svg>

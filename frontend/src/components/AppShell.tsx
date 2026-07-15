@@ -1,4 +1,4 @@
-import { BarChart3, CalendarCheck, CalendarDays, LogOut, Scissors, UserCog, Users } from "lucide-react";
+import { BarChart3, CalendarDays, LogOut, Scissors, UserCog, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
@@ -17,9 +17,7 @@ export function AppShell() {
     <div className="app-shell">
       <aside className="app-sidebar">
         <div className="app-sidebar-brand">
-          <span className="app-sidebar-brand-icon">
-            <CalendarCheck size={19} />
-          </span>
+          <img src="/logo-mark.svg" alt="" width={28} height={28} className="app-sidebar-brand-icon" />
           Voryn
         </div>
         {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
