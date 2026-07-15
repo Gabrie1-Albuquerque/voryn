@@ -15,6 +15,8 @@ export interface Company {
   timezone: string;
   plan_tier: string;
   auto_confirm_public_bookings: boolean;
+  reminder_first_hours: number;
+  reminder_second_hours: number;
 }
 
 export interface AvailabilityWindow {

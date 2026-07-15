@@ -12,6 +12,7 @@ import uuid
 from decimal import Decimal
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError, ValidationError
@@ -57,6 +58,28 @@ async def test_company_get_and_update(db_session: AsyncSession, make_tenant):
     # a commit -- flush() already sent it to Postgres.
     refetched = await company_service.get_company(db_session, tenant_id)
     assert refetched.name == "Salao Renomeado"
+
+
+@pytest.mark.asyncio
+async def test_company_reminder_hours_default_and_update(db_session: AsyncSession, make_tenant):
+    tenant_id = await make_tenant()
+
+    # New tenants keep the hours the worker hardcoded before this became
+    # configurable -- no silent behavior change for existing companies.
+    company = await company_service.get_company(db_session, tenant_id)
+    assert company.reminder_first_hours == 24
+    assert company.reminder_second_hours == 2
+
+    updated = await company_service.update_company(
+        db_session, tenant_id, CompanyUpdateRequest(reminder_first_hours=48, reminder_second_hours=4)
+    )
+    assert updated.reminder_first_hours == 48
+    assert updated.reminder_second_hours == 4
+
+
+def test_company_reminder_hours_order_rejected_by_schema():
+    with pytest.raises(PydanticValidationError):
+        CompanyUpdateRequest(reminder_first_hours=2, reminder_second_hours=2)
 
 
 @pytest.mark.asyncio

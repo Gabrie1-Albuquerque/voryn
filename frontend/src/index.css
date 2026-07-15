@@ -674,3 +674,91 @@ tbody tr:hover {
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ---------------------------------------------------------------------------
+   FullCalendar: default skin is low-contrast (thin 1px event bars, tiny
+   text) -- this makes appointments readable in the month view before the
+   user clicks in, and matches the calendar chrome to the brand tokens.
+--------------------------------------------------------------------------- */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-today-bg-color: var(--accent-bg);
+  --fc-page-bg-color: transparent;
+  font-family: var(--sans);
+}
+
+.fc .fc-toolbar-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.fc .fc-button {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  text-transform: none;
+  box-shadow: none;
+  padding: 6px 12px;
+}
+
+.fc .fc-button:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.fc .fc-daygrid-day-number {
+  font-weight: 600;
+  color: var(--text);
+  padding: 6px 8px;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: var(--accent-strong);
+}
+
+/* Month view events: default FullCalendar renders these as a 1px-tall bar
+   with 11px text -- easy to miss entirely at a glance. Bumping padding,
+   weight and radius makes each appointment read as a distinct block. */
+.fc .fc-daygrid-event {
+  padding: 3px 6px;
+  margin-top: 2px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.fc .fc-daygrid-event .fc-event-time {
+  font-weight: 700;
+}
+
+.fc .fc-daygrid-day-events {
+  min-height: 2.2em;
+}
+
+.fc .fc-daygrid-more-link {
+  font-weight: 600;
+  color: var(--accent-strong);
+}
+
+.fc .fc-timegrid-event {
+  border: none;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.fc .fc-timegrid-event .fc-event-main {
+  padding: 4px 6px;
+  font-weight: 600;
+}

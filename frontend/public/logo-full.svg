@@ -1,14 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="220" height="64" viewBox="0 0 220 64" role="img">
   <title>Voryn</title>
   <defs>
-    <linearGradient id="voryn-grad-2" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+    <linearGradient id="voryn-v-grad-2" x1="14" y1="10" x2="50" y2="46" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#7c3aed"/>
-      <stop offset="1" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#c026d3"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="64" height="64" rx="15" fill="url(#voryn-grad-2)"/>
-  <path d="M16 30 L27 43 L49 15" fill="none" stroke="#ffffff" stroke-width="7"
-        stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="0" y="0" width="64" height="64" rx="15" fill="#0b0a12"/>
+  <path d="M8 4 L30 26 L52 4" fill="none" stroke="#c4b5fd" stroke-width="3"
+        stroke-linecap="butt" stroke-linejoin="miter" opacity="0.55"/>
+  <polygon points="14,10 22,10 32,30 42,10 50,10 32,46" fill="url(#voryn-v-grad-2)"/>
   <text x="78" y="44" font-family="Inter, Helvetica, Arial, sans-serif" font-weight="700"
         font-size="34" letter-spacing="-0.5" fill="#1f2430">Voryn</text>
 </svg>

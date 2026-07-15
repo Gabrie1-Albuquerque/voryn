@@ -22,10 +22,22 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # try_files falls back to index.html for any path with no matching static
 # file, so React Router's client-side routes (e.g. /app/agenda,
 # /booking/:slug/...) work on a hard refresh, not just client-side navigation.
+#
+# Cache-Control is explicit on purpose: without it, nginx sends only
+# Last-Modified/ETag and browsers fall back to heuristic caching, which can
+# hold on to a stale index.html (and therefore a stale hashed bundle
+# filename) for hours after a new deploy with no way for us to force a
+# refresh. index.html is tiny and must always be revalidated; the
+# content-hashed files under /assets/ are safe to cache for a year since a
+# new build always produces new filenames.
 RUN printf 'server {\n\
     listen 5173;\n\
     root /usr/share/nginx/html;\n\
     location / {\n\
         try_files $uri $uri/ /index.html;\n\
+        add_header Cache-Control "no-cache";\n\
+    }\n\
+    location /assets/ {\n\
+        add_header Cache-Control "public, max-age=31536000, immutable";\n\
     }\n\
 }\n' > /etc/nginx/conf.d/default.conf
