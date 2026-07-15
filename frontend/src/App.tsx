@@ -10,6 +10,7 @@ import { CatalogPage } from "./features/catalog/CatalogPage";
 import { ClientsPage } from "./features/clients/ClientsPage";
 import { EmployeesPage } from "./features/employees/EmployeesPage";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
+import { SettingsPage } from "./features/settings/SettingsPage";
 import { LandingPage } from "./features/landing/LandingPage";
 import { PublicBookingLayout } from "./features/public-booking/PublicBookingLayout";
 import { ServiceListPage } from "./features/public-booking/ServiceListPage";
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="funcionarios" element={<EmployeesPage />} />
               <Route path="catalogo" element={<CatalogPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="configuracoes" element={<SettingsPage />} />
             </Route>
           </Route>
           {/* Unauthenticated, mobile-first client-facing flow -- deliberately

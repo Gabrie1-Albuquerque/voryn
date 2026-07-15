@@ -26,10 +26,24 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     plan_tier: Mapped[str] = mapped_column(String(20), default="starter")
     timezone: Mapped[str] = mapped_column(String(50), default="America/Sao_Paulo")
     auto_confirm_public_bookings: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Defaults match the hours the reminder worker used before this became
+    # configurable (see workers/reminders.py) -- existing tenants keep
+    # identical behavior unless they explicitly change these.
+    reminder_first_hours: Mapped[int] = mapped_column(SmallInteger, default=24, server_default="24")
+    reminder_second_hours: Mapped[int] = mapped_column(SmallInteger, default=2, server_default="2")
 
     users: Mapped[list["User"]] = relationship(back_populates="company", cascade="all, delete-orphan")
     employees: Mapped[list["Employee"]] = relationship(
         back_populates="company", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "reminder_first_hours > reminder_second_hours", name="ck_company_reminder_hours_order"
+        ),
+        CheckConstraint(
+            "reminder_first_hours > 0 AND reminder_second_hours > 0", name="ck_company_reminder_hours_positive"
+        ),
     )
 
 

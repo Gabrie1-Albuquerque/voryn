@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, LogOut, Scissors, UserCog, Users } from "lucide-react";
+import { BarChart3, CalendarDays, LogOut, Scissors, Settings, UserCog, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/app/funcionarios", label: "Funcionários", icon: UserCog },
   { to: "/app/catalogo", label: "Serviços & Salas", icon: Scissors },
   { to: "/app/dashboard", label: "Dashboard", icon: BarChart3 },
+  { to: "/app/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export function AppShell() {

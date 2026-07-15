@@ -27,14 +27,19 @@ class NotificationContext:
 
 
 _MESSAGE_BUILDERS = {
+    # Both reminders state the exact date/time rather than a relative word
+    # like "amanhã"/"em 2 horas" -- each company can configure its own
+    # reminder_first_hours/reminder_second_hours (see workers/reminders.py),
+    # so a hardcoded relative phrase would go stale for any tenant that
+    # changes the defaults.
     NotificationType.REMINDER_24H: lambda ctx: (
-        f"Olá {ctx.client_name}! Lembrete: você tem {ctx.service_name} agendado para amanhã, "
+        f"Olá {ctx.client_name}! Lembrete: você tem {ctx.service_name} agendado para "
         f"{ctx.starts_at.strftime('%d/%m às %H:%M')}, com {ctx.employee_name}. "
         f"Responda 1 para confirmar ou 2 para cancelar."
     ),
     NotificationType.REMINDER_2H: lambda ctx: (
-        f"Olá {ctx.client_name}! Seu horário de {ctx.service_name} é hoje às {ctx.starts_at.strftime('%H:%M')}, "
-        f"em cerca de 2 horas. Te esperamos!"
+        f"Olá {ctx.client_name}! Seu horário de {ctx.service_name} é às "
+        f"{ctx.starts_at.strftime('%H:%M')} de {ctx.starts_at.strftime('%d/%m')}. Te esperamos!"
     ),
     NotificationType.CONFIRMATION: lambda ctx: (
         f"Agendamento confirmado: {ctx.service_name} em {ctx.starts_at.strftime('%d/%m às %H:%M')} com {ctx.employee_name}."

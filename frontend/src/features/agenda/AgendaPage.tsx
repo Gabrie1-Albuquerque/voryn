@@ -93,6 +93,7 @@ export function AgendaPage() {
           height="auto"
           slotMinTime="07:00:00"
           slotMaxTime="21:00:00"
+          dayMaxEvents={3}
           editable
           selectable
           events={events}

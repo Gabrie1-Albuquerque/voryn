@@ -1,8 +1,9 @@
-"""RQ job: scans every active tenant for confirmed appointments starting in
-~24h or ~2h and sends reminders. RQ workers run synchronous Python
-functions, so this bridges into the async stack via asyncio.run -- there's
-no event loop already running in an RQ worker process to piggyback on,
-unlike request handling.
+"""RQ job: scans every active tenant for confirmed appointments starting
+around each company's configured reminder offsets (Company.reminder_first_hours/
+reminder_second_hours, defaulting to 24h/2h) and sends reminders. RQ workers
+run synchronous Python functions, so this bridges into the async stack via
+asyncio.run -- there's no event loop already running in an RQ worker
+process to piggyback on, unlike request handling.
 
 Runs per-tenant (not one cross-tenant query): the RLS/SET LOCAL model this
 whole app relies on requires a known tenant_id before any tenant-owned table
@@ -32,11 +33,6 @@ from app.services.notification_service import NotificationContext
 logger = logging.getLogger("app.workers.reminders")
 settings = get_settings()
 
-_REMINDER_WINDOWS = [
-    (NotificationType.REMINDER_24H, timedelta(hours=24)),
-    (NotificationType.REMINDER_2H, timedelta(hours=2)),
-]
-
 
 def scan_and_enqueue_reminders() -> None:
     """Sync entry point registered with rq-scheduler (see workers/scheduler.py)."""
@@ -47,25 +43,33 @@ async def _scan_and_enqueue_reminders_async() -> None:
     async with async_session_factory() as session:
         # companies has no RLS (it's the tenant root, not tenant-owned -- see
         # migration 0001), so this cross-tenant read needs no special context.
-        result = await session.execute(select(Company.id).where(Company.is_active.is_(True)))
-        tenant_ids = list(result.scalars().all())
+        result = await session.execute(
+            select(Company.id, Company.reminder_first_hours, Company.reminder_second_hours).where(
+                Company.is_active.is_(True)
+            )
+        )
+        tenants = list(result.all())
 
-    for tenant_id in tenant_ids:
+    for tenant_id, first_hours, second_hours in tenants:
         try:
-            await _scan_tenant(tenant_id)
+            await _scan_tenant(tenant_id, first_hours, second_hours)
         except Exception:
             # One tenant's failure (a bad provider config, a transient
             # network error) must not stop the scan for every other tenant.
             logger.exception("reminder scan failed for tenant_id=%s", tenant_id)
 
 
-async def _scan_tenant(tenant_id: uuid.UUID) -> None:
+async def _scan_tenant(tenant_id: uuid.UUID, first_hours: int, second_hours: int) -> None:
     now = datetime.now(timezone.utc)
+    reminder_windows = [
+        (NotificationType.REMINDER_24H, timedelta(hours=first_hours)),
+        (NotificationType.REMINDER_2H, timedelta(hours=second_hours)),
+    ]
     async with async_session_factory() as session:
         await set_tenant_context(session, tenant_id)
         repo = AppointmentRepository(session, tenant_id)
 
-        for notification_type, offset in _REMINDER_WINDOWS:
+        for notification_type, offset in reminder_windows:
             window_start = now + offset
             window_end = window_start + timedelta(minutes=settings.reminder_scan_interval_minutes)
             appointments = await repo.list_confirmed_starting_in_window(window_start, window_end)
