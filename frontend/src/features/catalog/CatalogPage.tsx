@@ -1,7 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { createRoom, createService, listRooms, listServices } from "../../api/catalog";
+import {
+  createRoom,
+  createService,
+  deactivateRoom,
+  deactivateService,
+  listRooms,
+  listServices,
+  updateRoom,
+  updateService,
+} from "../../api/catalog";
+import type { Service } from "../../api/types";
 import { ApiError } from "../../lib/api";
+import { ServiceEditModal } from "./ServiceEditModal";
 
 export function CatalogPage() {
   const queryClient = useQueryClient();
@@ -13,6 +24,7 @@ export function CatalogPage() {
   const [price, setPrice] = useState("0");
   const [roomName, setRoomName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [editingService, setEditingService] = useState<Service | null>(null);
 
   const createServiceMutation = useMutation({
     mutationFn: () => createService({ name: serviceName, duration_minutes: Number(duration), price }),
@@ -31,6 +43,57 @@ export function CatalogPage() {
     },
     onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Não foi possível criar a sala."),
   });
+
+  const toggleServiceMutation = useMutation({
+    mutationFn: async (service: Service) => {
+      if (service.is_active) {
+        await deactivateService(service.id);
+      } else {
+        await updateService(service.id, { is_active: true });
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
+    onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Não foi possível atualizar."),
+  });
+
+  function handleToggleService(service: Service) {
+    if (service.is_active && !window.confirm(`Desativar ${service.name}? Ele deixará de aparecer no link público.`)) {
+      return;
+    }
+    toggleServiceMutation.mutate(service);
+  }
+
+  const toggleRoomMutation = useMutation({
+    mutationFn: async (room: { id: string; is_active: boolean }) => {
+      if (room.is_active) {
+        await deactivateRoom(room.id);
+      } else {
+        await updateRoom(room.id, { is_active: true });
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rooms"] }),
+    onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Não foi possível atualizar."),
+  });
+
+  function handleToggleRoom(room: { id: string; name: string; is_active: boolean }) {
+    if (room.is_active && !window.confirm(`Desativar ${room.name}?`)) {
+      return;
+    }
+    toggleRoomMutation.mutate(room);
+  }
+
+  const renameRoomMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => updateRoom(id, { name }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rooms"] }),
+    onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Não foi possível renomear."),
+  });
+
+  function handleRenameRoom(room: { id: string; name: string }) {
+    const name = window.prompt("Novo nome da sala:", room.name);
+    if (name && name.trim() && name !== room.name) {
+      renameRoomMutation.mutate({ id: room.id, name: name.trim() });
+    }
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -74,6 +137,8 @@ export function CatalogPage() {
               <th>Duração</th>
               <th>Preço</th>
               <th>Sinal</th>
+              <th>Ativo</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -83,6 +148,13 @@ export function CatalogPage() {
                 <td>{service.duration_minutes}min</td>
                 <td>R$ {service.price}</td>
                 <td>{service.deposit_required ? `R$ ${service.deposit_value}` : "—"}</td>
+                <td>{service.is_active ? "Sim" : "Não"}</td>
+                <td style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setEditingService(service)}>Editar</button>
+                  <button disabled={toggleServiceMutation.isPending} onClick={() => handleToggleService(service)}>
+                    {service.is_active ? "Desativar" : "Reativar"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -110,6 +182,7 @@ export function CatalogPage() {
             <tr>
               <th>Nome</th>
               <th>Ativo</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -117,6 +190,12 @@ export function CatalogPage() {
               <tr key={room.id}>
                 <td>{room.name}</td>
                 <td>{room.is_active ? "Sim" : "Não"}</td>
+                <td style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => handleRenameRoom(room)}>Renomear</button>
+                  <button disabled={toggleRoomMutation.isPending} onClick={() => handleToggleRoom(room)}>
+                    {room.is_active ? "Desativar" : "Reativar"}
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -124,6 +203,8 @@ export function CatalogPage() {
       </div>
 
       {error && <p className="error-text">{error}</p>}
+
+      {editingService && <ServiceEditModal service={editingService} onClose={() => setEditingService(null)} />}
     </div>
   );
 }

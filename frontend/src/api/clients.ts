@@ -9,8 +9,15 @@ export function createClient(data: { name: string; phone: string; email?: string
   return apiRequest("/clients", { method: "POST", body: data });
 }
 
-export function updateClient(id: string, data: Partial<Pick<Client, "name" | "phone" | "email" | "is_active">>): Promise<Client> {
+export function updateClient(
+  id: string,
+  data: Partial<Pick<Client, "name" | "phone" | "email" | "document" | "is_active">>,
+): Promise<Client> {
   return apiRequest(`/clients/${id}`, { method: "PATCH", body: data });
+}
+
+export function deactivateClient(id: string): Promise<void> {
+  return apiRequest(`/clients/${id}`, { method: "DELETE" });
 }
 
 export function listClientNotes(clientId: string): Promise<ClientNote[]> {

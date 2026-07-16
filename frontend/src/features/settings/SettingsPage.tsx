@@ -9,6 +9,42 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const [infoError, setInfoError] = useState<string | null>(null);
+  const [infoSaved, setInfoSaved] = useState(false);
+
+  const infoMutation = useMutation({
+    mutationFn: updateMyCompany,
+    onSuccess: () => {
+      setInfoSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["company"] });
+    },
+    onError: (err) => {
+      setInfoSaved(false);
+      setInfoError(err instanceof ApiError ? String(err.detail) : "Não foi possível salvar.");
+    },
+  });
+
+  function handleSaveInfo(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setInfoError(null);
+    setInfoSaved(false);
+    const form = new FormData(e.currentTarget);
+    infoMutation.mutate({
+      name: String(form.get("name") ?? ""),
+      document: String(form.get("document") ?? ""),
+      timezone: String(form.get("timezone") ?? ""),
+      auto_confirm_public_bookings: form.get("auto_confirm_public_bookings") === "on",
+    });
+  }
+
+  async function handleCopyLink(link: string) {
+    await navigator.clipboard.writeText(link);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
+
   const updateMutation = useMutation({
     mutationFn: updateMyCompany,
     onSuccess: () => {
@@ -92,11 +128,73 @@ export function SettingsPage() {
 
   const company = companyQuery.data;
 
+  const bookingLink = company ? `${window.location.origin}/booking/${company.slug}` : "";
+
   return (
     <div>
       <h1>Configurações</h1>
 
       <div className="card" style={{ maxWidth: 480 }}>
+        <h2 style={{ marginTop: 0 }}>Seu link de agendamento</h2>
+        <p style={{ color: "var(--muted)", fontSize: 14 }}>
+          Compartilhe esse link com seus clientes (Instagram, WhatsApp, Google) para que eles marquem um
+          horário sozinhos, vendo sua agenda real em tempo real.
+        </p>
+        {!company ? (
+          <p>Carregando...</p>
+        ) : (
+          <div style={{ display: "flex", gap: 8 }}>
+            <input type="text" value={bookingLink} readOnly style={{ flex: 1 }} />
+            <button type="button" onClick={() => handleCopyLink(bookingLink)}>
+              {linkCopied ? "Copiado!" : "Copiar link"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ maxWidth: 480, marginTop: 16 }}>
+        <h2 style={{ marginTop: 0 }}>Informações da empresa</h2>
+
+        {!company ? (
+          <p>Carregando...</p>
+        ) : (
+          <form
+            key={company.id}
+            onSubmit={handleSaveInfo}
+            style={{ display: "flex", flexDirection: "column", gap: 12 }}
+          >
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              Nome da empresa
+              <input type="text" name="name" defaultValue={company.name} required />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              CNPJ/documento (opcional)
+              <input type="text" name="document" defaultValue={company.document ?? ""} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              Fuso horário
+              <input type="text" name="timezone" defaultValue={company.timezone} required />
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                name="auto_confirm_public_bookings"
+                defaultChecked={company.auto_confirm_public_bookings}
+              />
+              Confirmar automaticamente agendamentos feitos pelo link público
+            </label>
+            {infoError && <p className="error-text">{infoError}</p>}
+            {infoSaved && !infoError && <p style={{ color: "var(--success)", fontSize: 14 }}>Salvo!</p>}
+            <div>
+              <button type="submit" className="primary" disabled={infoMutation.isPending}>
+                Salvar
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      <div className="card" style={{ maxWidth: 480, marginTop: 16 }}>
         <h2 style={{ marginTop: 0 }}>Lembretes de agendamento</h2>
         <p style={{ color: "var(--muted)", fontSize: 14 }}>
           Defina com quanta antecedência os clientes recebem o lembrete no WhatsApp antes do horário marcado.
