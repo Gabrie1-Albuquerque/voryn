@@ -343,7 +343,7 @@ async def test_email_failure_does_not_break_whatsapp_or_the_transaction(
         async def send(self, **kwargs):
             raise RuntimeError("mail server unreachable")
 
-    monkeypatch.setattr(notification_service, "get_email_provider", lambda: _BrokenEmailProvider())
+    monkeypatch.setattr(notification_service, "SmtpEmailProvider", _BrokenEmailProvider)
 
     appointment = await appointment_service.create_appointment(
         db_session,

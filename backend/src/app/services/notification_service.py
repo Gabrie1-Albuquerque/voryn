@@ -10,7 +10,7 @@ from app.models.enums import NotificationChannel, NotificationStatus, Notificati
 from app.models.notification import NotificationLog
 from app.models.tenant import Company
 from app.providers.email.base import SmtpConfig
-from app.providers.email.factory import get_email_provider
+from app.providers.email.smtp_provider import SmtpEmailProvider
 from app.providers.notifications.factory import get_notification_provider
 from app.repositories.notification_repository import NotificationRepository
 
@@ -192,7 +192,12 @@ async def _send_email_if_configured(
             password=decrypt_secret(company.smtp_password_encrypted),
             from_email=company.smtp_from_email,
         )
-        await get_email_provider().send(to=context.client_email, subject=subject, body=body, smtp_config=smtp_config)
+        # Deliberately not get_email_provider(): that reads the global
+        # EMAIL_PROVIDER switch, which auth_service.py's password reset also
+        # depends on (without smtp_config, which SmtpEmailProvider requires).
+        # A tenant's own configured SMTP must work regardless of that
+        # platform-wide setting, and must never be able to break it.
+        await SmtpEmailProvider().send(to=context.client_email, subject=subject, body=body, smtp_config=smtp_config)
         status = NotificationStatus.SENT
     except Exception:
         logger.exception(
