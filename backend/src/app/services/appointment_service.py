@@ -91,6 +91,7 @@ def _notification_context(appointment: Appointment) -> NotificationContext:
     return NotificationContext(
         client_name=appointment.client.name,
         client_phone=appointment.client.phone,
+        client_email=appointment.client.email,
         service_name=appointment.service.name,
         employee_name=appointment.employee.name,
         starts_at=appointment.starts_at,

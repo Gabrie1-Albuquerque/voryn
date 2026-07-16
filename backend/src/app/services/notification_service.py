@@ -1,13 +1,20 @@
+import logging
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.encryption import decrypt_secret
 from app.models.enums import NotificationChannel, NotificationStatus, NotificationType
 from app.models.notification import NotificationLog
+from app.models.tenant import Company
+from app.providers.email.base import SmtpConfig
+from app.providers.email.smtp_provider import SmtpEmailProvider
 from app.providers.notifications.factory import get_notification_provider
 from app.repositories.notification_repository import NotificationRepository
+
+logger = logging.getLogger("app.notifications")
 
 
 @dataclass(frozen=True)
@@ -24,6 +31,11 @@ class NotificationContext:
     service_name: str
     employee_name: str
     starts_at: datetime
+    # Optional and last so every existing positional/keyword construction
+    # site keeps working unchanged -- only sites that also want the email
+    # channel need to pass it (see appointment_service.py, waitlist_service.py,
+    # workers/reminders.py).
+    client_email: str | None = None
 
 
 _MESSAGE_BUILDERS = {
@@ -55,6 +67,17 @@ _MESSAGE_BUILDERS = {
         f"{ctx.starts_at.strftime('%d/%m às %H:%M')} com {ctx.employee_name}. "
         f"Responda 1 para confirmar esse horário."
     ),
+}
+
+# Email reuses the WhatsApp message text as its body (see _MESSAGE_BUILDERS
+# above) -- only the subject line differs, so no separate copy to maintain.
+_EMAIL_SUBJECT_BUILDERS = {
+    NotificationType.REMINDER_24H: lambda ctx: f"Lembrete: {ctx.service_name} em breve",
+    NotificationType.REMINDER_2H: lambda ctx: f"Lembrete: {ctx.service_name} está chegando",
+    NotificationType.CONFIRMATION: lambda ctx: f"Agendamento confirmado — {ctx.service_name}",
+    NotificationType.CANCELLATION: lambda ctx: f"Agendamento cancelado — {ctx.service_name}",
+    NotificationType.RESCHEDULE: lambda ctx: f"Agendamento remarcado — {ctx.service_name}",
+    NotificationType.WAITLIST_PROMOTION: lambda ctx: "Um horário abriu para você!",
 }
 
 # Only reminders need the idempotency guard below: they're the one
@@ -115,5 +138,84 @@ async def send_notification(
             payload_snapshot={"message": message},
         )
     )
+
+    await _send_email_if_configured(
+        session,
+        tenant_id,
+        appointment_id=appointment_id,
+        client_id=client_id,
+        notification_type=notification_type,
+        context=context,
+    )
+
     await session.flush()
     return log
+
+
+async def _send_email_if_configured(
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    appointment_id: uuid.UUID | None,
+    client_id: uuid.UUID,
+    notification_type: NotificationType,
+    context: NotificationContext,
+) -> None:
+    """Second, independent channel alongside WhatsApp above -- logged as its
+    own NotificationLog row (channel=EMAIL), same (appointment_id,
+    notification_type) pair. The idempotency guard in send_notification()
+    already covers this: both channels are attempted inside the same call,
+    so a later duplicate call for the same reminder still no-ops entirely
+    (deliberate scope boundary, not a gap -- there's no per-channel retry in
+    this pass). A failure here (bad credentials, mail server down) must
+    never take down the WhatsApp send above or the caller's transaction --
+    caught and logged as a FAILED row instead of propagating.
+    """
+    if context.client_email is None:
+        return
+
+    company = await session.get(Company, tenant_id)
+    if company is None or not (
+        company.smtp_host and company.smtp_username and company.smtp_password_encrypted and company.smtp_from_email
+    ):
+        return
+
+    repo = NotificationRepository(session, tenant_id)
+    subject = _EMAIL_SUBJECT_BUILDERS[notification_type](context)
+    body = _MESSAGE_BUILDERS[notification_type](context)
+
+    try:
+        smtp_config = SmtpConfig(
+            host=company.smtp_host,
+            port=company.smtp_port or 587,
+            username=company.smtp_username,
+            password=decrypt_secret(company.smtp_password_encrypted),
+            from_email=company.smtp_from_email,
+        )
+        # Deliberately not get_email_provider(): that reads the global
+        # EMAIL_PROVIDER switch, which auth_service.py's password reset also
+        # depends on (without smtp_config, which SmtpEmailProvider requires).
+        # A tenant's own configured SMTP must work regardless of that
+        # platform-wide setting, and must never be able to break it.
+        await SmtpEmailProvider().send(to=context.client_email, subject=subject, body=body, smtp_config=smtp_config)
+        status = NotificationStatus.SENT
+    except Exception:
+        logger.exception(
+            "email notification failed for tenant_id=%s appointment_id=%s notification_type=%s",
+            tenant_id,
+            appointment_id,
+            notification_type,
+        )
+        status = NotificationStatus.FAILED
+
+    repo.add(
+        NotificationLog(
+            appointment_id=appointment_id,
+            client_id=client_id,
+            channel=NotificationChannel.EMAIL,
+            notification_type=notification_type,
+            status=status,
+            sent_at=datetime.now(timezone.utc) if status == NotificationStatus.SENT else None,
+            payload_snapshot={"subject": subject, "message": body},
+        )
+    )

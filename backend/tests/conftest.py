@@ -1,14 +1,24 @@
+import os
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 import pytest
 import pytest_asyncio
+from cryptography.fernet import Fernet
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession, async_sessionmaker, create_async_engine
 
-from app.core.config import get_settings
-from app.core.database import set_tenant_context
+# Must happen before the app.core.config import below: Settings.
+# smtp_credentials_encryption_key's class-level default is deliberately an
+# invalid, non-functional placeholder (unlike jwt_secret_key's, which is a
+# working-but-insecure value) -- a real Fernet key is required or
+# encrypt_secret/decrypt_secret raise. Generating one fresh per test session
+# means tests never depend on any committed value, hardcoded or otherwise.
+os.environ.setdefault("SMTP_CREDENTIALS_ENCRYPTION_KEY", Fernet.generate_key().decode())
+
+from app.core.config import get_settings  # noqa: E402
+from app.core.database import set_tenant_context  # noqa: E402
 
 settings = get_settings()
 

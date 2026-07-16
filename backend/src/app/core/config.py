@@ -38,7 +38,21 @@ class Settings(BaseSettings):
 
     notification_provider: str = "console"  # console | whatsapp_cloud | zapi
     payment_provider: str = "mock"  # mock | mercadopago
-    email_provider: str = "console"
+    email_provider: str = "console"  # console | smtp
+
+    # Encrypts each tenant's SMTP password at rest (Company.smtp_password_encrypted)
+    # so it can be decrypted again to authenticate with their mail server --
+    # a reversible cipher, not a hash, unlike every other secret this app
+    # stores (refresh tokens, user passwords). Deliberately NOT a valid Fernet
+    # key (unlike jwt_secret_key's placeholder, which works out of the box) --
+    # a real, working default here would mean anyone reading this public repo
+    # could decrypt any tenant's SMTP password if a deployer forgot to set
+    # their own. Fernet() raises immediately on this value; .env.example
+    # instructs generating a real one before any tenant connects an account.
+    # Losing/rotating the real key without a re-encryption migration makes
+    # every stored SMTP password permanently undecryptable -- accepted,
+    # documented risk, not solved here.
+    smtp_credentials_encryption_key: str = "change-me-in-.env-generate-a-real-fernet-key-not-this"
 
     # How often workers/scheduler.py's periodic tick runs. The reminder scan
     # window (workers/reminders.py) is sized to match this exactly, so every

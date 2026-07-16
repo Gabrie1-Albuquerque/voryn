@@ -8,13 +8,15 @@ export function ClientsPage() {
   const clientsQuery = useQuery({ queryKey: ["clients"], queryFn: listClients });
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: () => createClient({ name, phone }),
+    mutationFn: () => createClient({ name, phone, email: email || undefined }),
     onSuccess: () => {
       setName("");
       setPhone("");
+      setEmail("");
       queryClient.invalidateQueries({ queryKey: ["clients"] });
     },
     onError: (err) => setError(err instanceof ApiError ? String(err.detail) : "Não foi possível criar."),
@@ -29,9 +31,15 @@ export function ClientsPage() {
   return (
     <div>
       <h1>Clientes</h1>
-      <form onSubmit={handleSubmit} className="card" style={{ display: "flex", gap: 8, marginBottom: 16, maxWidth: 500 }}>
+      <form onSubmit={handleSubmit} className="card" style={{ display: "flex", gap: 8, marginBottom: 16, maxWidth: 640 }}>
         <input placeholder="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
         <input placeholder="Telefone (WhatsApp)" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+        <input
+          type="email"
+          placeholder="Email (opcional)"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         <button type="submit" className="primary" disabled={createMutation.isPending}>
           Adicionar
         </button>
@@ -42,6 +50,7 @@ export function ClientsPage() {
           <tr>
             <th>Nome</th>
             <th>Telefone</th>
+            <th>Email</th>
             <th>Ativo</th>
           </tr>
         </thead>
@@ -50,6 +59,7 @@ export function ClientsPage() {
             <tr key={client.id}>
               <td>{client.name}</td>
               <td>{client.phone}</td>
+              <td>{client.email ?? "—"}</td>
               <td>{client.is_active ? "Sim" : "Não"}</td>
             </tr>
           ))}
