@@ -4,6 +4,7 @@ import { createClient, deactivateClient, listClients, updateClient } from "../..
 import type { Client } from "../../api/types";
 import { ApiError } from "../../lib/api";
 import { ClientEditModal } from "./ClientEditModal";
+import { ClientNotesModal } from "./ClientNotesModal";
 
 export function ClientsPage() {
   const queryClient = useQueryClient();
@@ -13,6 +14,7 @@ export function ClientsPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [notesClient, setNotesClient] = useState<Client | null>(null);
   const [showInactive, setShowInactive] = useState(false);
 
   const createMutation = useMutation({
@@ -91,6 +93,7 @@ export function ClientsPage() {
               <td>{client.is_active ? "Sim" : "Não"}</td>
               <td style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => setEditingClient(client)}>Editar</button>
+                <button onClick={() => setNotesClient(client)}>Notas</button>
                 <button disabled={toggleActiveMutation.isPending} onClick={() => handleToggleActive(client)}>
                   {client.is_active ? "Desativar" : "Reativar"}
                 </button>
@@ -101,6 +104,8 @@ export function ClientsPage() {
       </table>
 
       {editingClient && <ClientEditModal client={editingClient} onClose={() => setEditingClient(null)} />}
+
+      {notesClient && <ClientNotesModal client={notesClient} onClose={() => setNotesClient(null)} />}
     </div>
   );
 }
