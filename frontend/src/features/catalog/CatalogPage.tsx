@@ -25,6 +25,8 @@ export function CatalogPage() {
   const [roomName, setRoomName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [showInactiveServices, setShowInactiveServices] = useState(false);
+  const [showInactiveRooms, setShowInactiveRooms] = useState(false);
 
   const createServiceMutation = useMutation({
     mutationFn: () => createService({ name: serviceName, duration_minutes: Number(duration), price }),
@@ -130,6 +132,14 @@ export function CatalogPage() {
             Adicionar
           </button>
         </form>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8 }}>
+          <input
+            type="checkbox"
+            checked={showInactiveServices}
+            onChange={(e) => setShowInactiveServices(e.target.checked)}
+          />
+          Mostrar desativados
+        </label>
         <table className="card">
           <thead>
             <tr>
@@ -142,7 +152,7 @@ export function CatalogPage() {
             </tr>
           </thead>
           <tbody>
-            {servicesQuery.data?.map((service) => (
+            {servicesQuery.data?.filter((service) => showInactiveServices || service.is_active).map((service) => (
               <tr key={service.id}>
                 <td>{service.name}</td>
                 <td>{service.duration_minutes}min</td>
@@ -177,6 +187,14 @@ export function CatalogPage() {
             Adicionar
           </button>
         </form>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8 }}>
+          <input
+            type="checkbox"
+            checked={showInactiveRooms}
+            onChange={(e) => setShowInactiveRooms(e.target.checked)}
+          />
+          Mostrar desativadas
+        </label>
         <table className="card">
           <thead>
             <tr>
@@ -186,7 +204,7 @@ export function CatalogPage() {
             </tr>
           </thead>
           <tbody>
-            {roomsQuery.data?.map((room) => (
+            {roomsQuery.data?.filter((room) => showInactiveRooms || room.is_active).map((room) => (
               <tr key={room.id}>
                 <td>{room.name}</td>
                 <td>{room.is_active ? "Sim" : "Não"}</td>

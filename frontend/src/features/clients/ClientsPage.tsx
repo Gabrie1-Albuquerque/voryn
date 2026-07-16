@@ -13,6 +13,7 @@ export function ClientsPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: () => createClient({ name, phone, email: email || undefined }),
@@ -67,6 +68,10 @@ export function ClientsPage() {
         </button>
       </form>
       {error && <p className="error-text">{error}</p>}
+      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8 }}>
+        <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+        Mostrar desativados
+      </label>
       <table className="card">
         <thead>
           <tr>
@@ -78,7 +83,7 @@ export function ClientsPage() {
           </tr>
         </thead>
         <tbody>
-          {clientsQuery.data?.map((client) => (
+          {clientsQuery.data?.filter((client) => showInactive || client.is_active).map((client) => (
             <tr key={client.id}>
               <td>{client.name}</td>
               <td>{client.phone}</td>
