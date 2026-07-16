@@ -17,6 +17,13 @@ export interface Company {
   auto_confirm_public_bookings: boolean;
   reminder_first_hours: number;
   reminder_second_hours: number;
+  // Password/ciphertext never included -- smtp_configured is the only
+  // signal the UI gets for "is something connected".
+  smtp_host: string | null;
+  smtp_port: number | null;
+  smtp_username: string | null;
+  smtp_from_email: string | null;
+  smtp_configured: boolean;
 }
 
 export interface AvailabilityWindow {

@@ -1,6 +1,6 @@
 import logging
 
-from app.providers.email.base import EmailProvider
+from app.providers.email.base import EmailProvider, SmtpConfig
 
 logger = logging.getLogger("app.email")
 
@@ -10,5 +10,7 @@ class ConsoleEmailProvider(EmailProvider):
     flow is exercisable end-to-end with zero external credentials.
     """
 
-    async def send(self, *, to: str, subject: str, body: str) -> None:
+    async def send(
+        self, *, to: str, subject: str, body: str, smtp_config: SmtpConfig | None = None
+    ) -> None:
         logger.info("EMAIL to=%s subject=%r\n%s", to, subject, body)

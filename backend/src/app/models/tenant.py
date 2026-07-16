@@ -2,7 +2,7 @@ import uuid
 from datetime import time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, SmallInteger, String, Time
+from sqlalchemy import Boolean, CheckConstraint, ForeignKey, SmallInteger, String, Text, Time
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -31,6 +31,24 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     # identical behavior unless they explicitly change these.
     reminder_first_hours: Mapped[int] = mapped_column(SmallInteger, default=24, server_default="24")
     reminder_second_hours: Mapped[int] = mapped_column(SmallInteger, default=2, server_default="2")
+
+    # Each tenant's own SMTP account, used to email their clients (see
+    # notification_service.py) -- deliberately per-tenant, not one shared
+    # platform credential like WhatsApp/Mercado Pago, so notifications
+    # arrive from the business's own address. smtp_password_encrypted holds
+    # a Fernet ciphertext (core/encryption.py), never the plaintext password;
+    # it's intentionally absent from CompanyResponse (schemas/company.py).
+    smtp_host: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    smtp_port: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    smtp_username: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    smtp_password_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    smtp_from_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    @property
+    def smtp_configured(self) -> bool:
+        """Derived, not stored -- CompanyResponse reads this via from_attributes
+        so the API can say "connected" without ever exposing the password."""
+        return self.smtp_password_encrypted is not None
 
     users: Mapped[list["User"]] = relationship(back_populates="company", cascade="all, delete-orphan")
     employees: Mapped[list["Employee"]] = relationship(

@@ -84,6 +84,7 @@ async def promote_next_match(session: AsyncSession, tenant_id: uuid.UUID, freed_
         context=NotificationContext(
             client_name=client.name if client else "",
             client_phone=client.phone if client else "",
+            client_email=client.email if client else None,
             service_name=freed_appointment.service.name,
             employee_name=freed_appointment.employee.name,
             starts_at=freed_appointment.starts_at,

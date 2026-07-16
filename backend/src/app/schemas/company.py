@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 
 class CompanyResponse(BaseModel):
@@ -13,6 +13,13 @@ class CompanyResponse(BaseModel):
     auto_confirm_public_bookings: bool
     reminder_first_hours: int
     reminder_second_hours: int
+    # Non-secret SMTP fields only -- smtp_password_encrypted never appears
+    # here, on purpose (see Company.smtp_configured in models/tenant.py).
+    smtp_host: str | None
+    smtp_port: int | None
+    smtp_username: str | None
+    smtp_from_email: str | None
+    smtp_configured: bool
 
 
 class CompanyUpdateRequest(BaseModel):
@@ -22,6 +29,15 @@ class CompanyUpdateRequest(BaseModel):
     auto_confirm_public_bookings: bool | None = None
     reminder_first_hours: int | None = Field(default=None, gt=0, le=168)
     reminder_second_hours: int | None = Field(default=None, gt=0, le=168)
+    smtp_host: str | None = None
+    smtp_port: int | None = Field(default=None, gt=0, le=65535)
+    smtp_username: str | None = None
+    # Write-only: omit to leave the already-saved password untouched (same
+    # exclude_unset=True effect the rest of this schema already relies on).
+    # Encrypted by company_service.update_company before it ever reaches the
+    # Company model -- there is no plaintext "smtp_password" column.
+    smtp_password: str | None = None
+    smtp_from_email: EmailStr | None = None
 
     @model_validator(mode="after")
     def _check_reminder_order(self) -> "CompanyUpdateRequest":
@@ -36,3 +52,21 @@ class CompanyUpdateRequest(BaseModel):
         ):
             raise ValueError("reminder_first_hours must be greater than reminder_second_hours")
         return self
+
+
+class SmtpTestRequest(BaseModel):
+    """Tests candidate credentials before they're ever persisted -- all
+    fields required, unlike CompanyUpdateRequest's partial-patch shape,
+    since a connection test only makes sense with a complete credential set.
+    """
+
+    smtp_host: str = Field(min_length=1)
+    smtp_port: int = Field(gt=0, le=65535)
+    smtp_username: str = Field(min_length=1)
+    smtp_password: str = Field(min_length=1)
+    smtp_from_email: EmailStr
+
+
+class SmtpTestResponse(BaseModel):
+    success: bool
+    message: str
