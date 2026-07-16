@@ -5,7 +5,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { listAppointments, rescheduleAppointment } from "../../api/appointments";
 import { listEmployees } from "../../api/employees";
 import type { Appointment } from "../../api/types";
@@ -46,6 +46,16 @@ export function AgendaPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["appointments"] }),
   });
 
+  function handleDatesSet(arg: { start: Date; end: Date }) {
+    const start = arg.start.toISOString();
+    const end = arg.end.toISOString();
+    // Guard against redundant updates: setting an equal-but-new object
+    // reference still re-renders (useState compares by reference), which
+    // is exactly the other half of the infinite-loop condition described
+    // above -- datesSet must be a no-op when the range hasn't actually moved.
+    setRange((current) => (current && current.start === start && current.end === end ? current : { start, end }));
+  }
+
   function handleEventDrop(info: EventDropArg) {
     rescheduleMutation.mutate(
       { id: info.event.id, newStartsAt: info.event.start!.toISOString() },
@@ -59,14 +69,24 @@ export function AgendaPage() {
     );
   }
 
-  const events =
-    appointmentsQuery.data?.map((appointment) => ({
-      id: appointment.id,
-      title: `${appointment.service_name} — ${appointment.client_name}`,
-      start: appointment.starts_at,
-      end: appointment.ends_at,
-      color: STATUS_COLORS[appointment.status],
-    })) ?? [];
+  // Memoized: FullCalendar treats a new `events` array reference as
+  // meaningful and re-derives internal layout state from it, which can
+  // re-trigger `datesSet` below -- an unmemoized `.map()` here (a fresh
+  // array + fresh objects on every render, even when nothing changed)
+  // combined with datesSet unconditionally calling setRange was a real
+  // infinite-render loop that crashed the whole page with no error
+  // boundary (see AppShell.tsx/App.tsx -- there isn't one yet).
+  const events = useMemo(
+    () =>
+      appointmentsQuery.data?.map((appointment) => ({
+        id: appointment.id,
+        title: `${appointment.service_name} — ${appointment.client_name}`,
+        start: appointment.starts_at,
+        end: appointment.ends_at,
+        color: STATUS_COLORS[appointment.status],
+      })) ?? [],
+    [appointmentsQuery.data],
+  );
 
   return (
     <div>
@@ -97,7 +117,7 @@ export function AgendaPage() {
           editable
           selectable
           events={events}
-          datesSet={(arg) => setRange({ start: arg.start.toISOString(), end: arg.end.toISOString() })}
+          datesSet={handleDatesSet}
           eventDrop={handleEventDrop}
           select={(info) => setSelectedSlot({ start: info.start.toISOString() })}
           eventClick={(info) => setSelectedAppointmentId(info.event.id)}
