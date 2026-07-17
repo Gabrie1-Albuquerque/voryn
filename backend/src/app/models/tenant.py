@@ -50,6 +50,16 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         so the API can say "connected" without ever exposing the password."""
         return self.smtp_password_encrypted is not None
 
+    # Each tenant's own Mercado Pago account, so deposit (sinal) payments land
+    # directly in the business owner's account -- never in the platform's.
+    # Same reversible-encryption pattern as smtp_password_encrypted above.
+    mp_access_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mp_webhook_secret_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    @property
+    def mercadopago_configured(self) -> bool:
+        return self.mp_access_token_encrypted is not None
+
     users: Mapped[list["User"]] = relationship(back_populates="company", cascade="all, delete-orphan")
     employees: Mapped[list["Employee"]] = relationship(
         back_populates="company", cascade="all, delete-orphan"

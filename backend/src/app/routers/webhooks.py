@@ -76,13 +76,28 @@ async def receive_whatsapp_webhook(
 
 @router.post("/mercadopago")
 async def receive_mercadopago_webhook(request: Request) -> dict[str, str]:
-    """One global endpoint (no per-tenant slug, unlike the WhatsApp webhook
-    above): Mercado Pago notifications don't carry any tenant info we don't
-    put there ourselves, so tenant is resolved from the external_reference
-    embedded when the charge was created (see payment_service.py), not from
-    the URL -- handle_mercadopago_webhook manages its own DB session once
-    that's parsed out, since none exists yet at this point.
+    """Legacy global endpoint: only serves the GLOBAL provider (mock/env-var).
+    Tenants with their own Mercado Pago account use the slugged endpoint
+    below -- see payment_service.handle_tenant_mercadopago_webhook.
     """
     payload = await request.json()
     await payment_service.handle_mercadopago_webhook(payload, dict(request.headers))
+    return {"status": "ok"}
+
+
+@router.post("/mercadopago/{company_slug}")
+async def receive_tenant_mercadopago_webhook(
+    request: Request,
+    ctx: SlugTenantContext = Depends(get_tenant_db_by_slug),
+) -> dict[str, str]:
+    """Per-tenant endpoint (same slug-resolution shape as the WhatsApp
+    webhook above): the business owner registers THIS exact URL in their own
+    Mercado Pago application's notification settings, which is what lets
+    signature verification and the follow-up payment fetch use their own
+    credentials.
+    """
+    payload = await request.json()
+    await payment_service.handle_tenant_mercadopago_webhook(
+        ctx.session, ctx.tenant_id, payload, dict(request.headers)
+    )
     return {"status": "ok"}

@@ -1,6 +1,6 @@
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +36,16 @@ class NotificationContext:
     # channel need to pass it (see appointment_service.py, waitlist_service.py,
     # workers/reminders.py).
     client_email: str | None = None
+    # Filled in by send_notification itself (from the Company it already
+    # fetches) when callers leave it None -- no call-site changes needed.
+    company_name: str | None = None
+
+
+def _at_company(ctx: "NotificationContext") -> str:
+    """' na {empresa}' suffix, or empty when unknown -- identifies which
+    business a message is about, useful in any channel and essential over
+    WhatsApp (the sender's display name may not match the business)."""
+    return f" na {ctx.company_name}" if ctx.company_name else ""
 
 
 _MESSAGE_BUILDERS = {
@@ -46,24 +56,27 @@ _MESSAGE_BUILDERS = {
     # changes the defaults.
     NotificationType.REMINDER_24H: lambda ctx: (
         f"Olá {ctx.client_name}! Lembrete: você tem {ctx.service_name} agendado para "
-        f"{ctx.starts_at.strftime('%d/%m às %H:%M')}, com {ctx.employee_name}. "
+        f"{ctx.starts_at.strftime('%d/%m às %H:%M')}, com {ctx.employee_name}{_at_company(ctx)}. "
         f"Responda 1 para confirmar ou 2 para cancelar."
     ),
     NotificationType.REMINDER_2H: lambda ctx: (
-        f"Olá {ctx.client_name}! Seu horário de {ctx.service_name} é às "
+        f"Olá {ctx.client_name}! Seu horário de {ctx.service_name}{_at_company(ctx)} é às "
         f"{ctx.starts_at.strftime('%H:%M')} de {ctx.starts_at.strftime('%d/%m')}. Te esperamos!"
     ),
     NotificationType.CONFIRMATION: lambda ctx: (
-        f"Agendamento confirmado: {ctx.service_name} em {ctx.starts_at.strftime('%d/%m às %H:%M')} com {ctx.employee_name}."
+        f"Agendamento confirmado{_at_company(ctx)}: {ctx.service_name} em "
+        f"{ctx.starts_at.strftime('%d/%m às %H:%M')} com {ctx.employee_name}."
     ),
     NotificationType.CANCELLATION: lambda ctx: (
-        f"Seu agendamento de {ctx.service_name} em {ctx.starts_at.strftime('%d/%m às %H:%M')} foi cancelado."
+        f"Seu agendamento de {ctx.service_name}{_at_company(ctx)} em "
+        f"{ctx.starts_at.strftime('%d/%m às %H:%M')} foi cancelado."
     ),
     NotificationType.RESCHEDULE: lambda ctx: (
-        f"Seu agendamento de {ctx.service_name} foi remarcado para {ctx.starts_at.strftime('%d/%m às %H:%M')}."
+        f"Seu agendamento de {ctx.service_name}{_at_company(ctx)} foi remarcado para "
+        f"{ctx.starts_at.strftime('%d/%m às %H:%M')}."
     ),
     NotificationType.WAITLIST_PROMOTION: lambda ctx: (
-        f"Boa notícia, {ctx.client_name}! Um horário abriu para {ctx.service_name} em "
+        f"Boa notícia, {ctx.client_name}! Um horário abriu para {ctx.service_name}{_at_company(ctx)} em "
         f"{ctx.starts_at.strftime('%d/%m às %H:%M')} com {ctx.employee_name}. "
         f"Responda 1 para confirmar esse horário."
     ),
@@ -122,9 +135,37 @@ async def send_notification(
     ):
         return None
 
+    # Fetched once and reused by every channel below: instance name for the
+    # per-tenant WhatsApp session, SMTP config for email, and the business
+    # name injected into message texts (so the client knows which business a
+    # message is about, whichever number/address it arrives from).
+    company = await session.get(Company, tenant_id)
+    if company is not None and context.company_name is None:
+        context = replace(context, company_name=company.name)
+
     message = _MESSAGE_BUILDERS[notification_type](context)
     provider = get_notification_provider()
-    result = await provider.send_text(to_phone=context.client_phone, message=message, correlation_id=str(appointment_id or client_id))
+    try:
+        result = await provider.send_text(
+            to_phone=context.client_phone,
+            message=message,
+            correlation_id=str(appointment_id or client_id),
+            instance=company.slug if company else None,
+        )
+        whatsapp_status = NotificationStatus.SENT
+        provider_message_id = result.provider_message_id
+    except Exception:
+        # A real provider (Evolution instance disconnected, network down)
+        # must never take down the caller's transaction or the email channel
+        # below -- same isolation rule as email failures.
+        logger.exception(
+            "whatsapp notification failed for tenant_id=%s appointment_id=%s notification_type=%s",
+            tenant_id,
+            appointment_id,
+            notification_type,
+        )
+        whatsapp_status = NotificationStatus.FAILED
+        provider_message_id = None
 
     log = repo.add(
         NotificationLog(
@@ -132,15 +173,16 @@ async def send_notification(
             client_id=client_id,
             channel=channel,
             notification_type=notification_type,
-            status=NotificationStatus.SENT,
-            provider_message_id=result.provider_message_id,
-            sent_at=datetime.now(timezone.utc),
+            status=whatsapp_status,
+            provider_message_id=provider_message_id,
+            sent_at=datetime.now(timezone.utc) if whatsapp_status == NotificationStatus.SENT else None,
             payload_snapshot={"message": message},
         )
     )
 
     await _send_email_if_configured(
         session,
+        company,
         tenant_id,
         appointment_id=appointment_id,
         client_id=client_id,
@@ -154,6 +196,7 @@ async def send_notification(
 
 async def _send_email_if_configured(
     session: AsyncSession,
+    company: Company | None,
     tenant_id: uuid.UUID,
     *,
     appointment_id: uuid.UUID | None,
@@ -174,7 +217,6 @@ async def _send_email_if_configured(
     if context.client_email is None:
         return
 
-    company = await session.get(Company, tenant_id)
     if company is None or not (
         company.smtp_host and company.smtp_username and company.smtp_password_encrypted and company.smtp_from_email
     ):

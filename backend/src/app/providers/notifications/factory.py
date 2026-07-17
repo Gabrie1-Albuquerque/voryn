@@ -18,4 +18,8 @@ def get_notification_provider() -> NotificationProvider:
         from app.providers.notifications.zapi_provider import ZApiProvider
 
         return ZApiProvider()
+    if provider == "evolution":
+        from app.providers.notifications.evolution_provider import EvolutionApiProvider
+
+        return EvolutionApiProvider()
     raise ValueError(f"unknown NOTIFICATION_PROVIDER: {provider!r}")

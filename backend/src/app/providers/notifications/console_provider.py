@@ -15,7 +15,9 @@ class ConsoleNotificationProvider(NotificationProvider):
     which is complete but necessarily untested against a live account).
     """
 
-    async def send_text(self, *, to_phone: str, message: str, correlation_id: str) -> ProviderSendResult:
+    async def send_text(
+        self, *, to_phone: str, message: str, correlation_id: str, instance: str | None = None
+    ) -> ProviderSendResult:
         logger.info("WHATSAPP to=%s correlation_id=%s\n%s", to_phone, correlation_id, message)
         return ProviderSendResult(provider_message_id=f"console-{uuid.uuid4()}")
 

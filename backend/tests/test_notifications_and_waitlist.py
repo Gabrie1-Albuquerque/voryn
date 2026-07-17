@@ -369,3 +369,65 @@ async def test_email_failure_does_not_break_whatsapp_or_the_transaction(
     )
     email_log = result.scalar_one()
     assert email_log.status == NotificationStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_whatsapp_failure_is_isolated_as_failed_log(db_session: AsyncSession, make_tenant, monkeypatch):
+    """A real WhatsApp provider (Evolution instance disconnected, network
+    down) raising must never break the appointment transition -- the send is
+    recorded as a FAILED row instead of propagating.
+    """
+    tenant_id = await make_tenant()
+    seed = await _seed(db_session, tenant_id)
+
+    class _BrokenWhatsApp:
+        async def send_text(self, **kwargs):
+            raise RuntimeError("instance disconnected")
+
+    monkeypatch.setattr(notification_service, "get_notification_provider", lambda: _BrokenWhatsApp())
+
+    appointment = await appointment_service.create_appointment(
+        db_session,
+        tenant_id,
+        client_id=seed["client_a"].id,
+        employee_id=seed["employee"].id,
+        service_id=seed["service"].id,
+        starts_at=BASE_START,
+    )
+    assert appointment.status.value == "confirmed"  # transition unaffected
+
+    result = await db_session.execute(
+        select(NotificationLog).where(
+            NotificationLog.tenant_id == tenant_id,
+            NotificationLog.appointment_id == appointment.id,
+            NotificationLog.notification_type == NotificationType.CONFIRMATION,
+            NotificationLog.channel == NotificationChannel.WHATSAPP,
+        )
+    )
+    log = result.scalar_one()
+    assert log.status == NotificationStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_messages_include_company_name(db_session: AsyncSession, make_tenant):
+    tenant_id = await make_tenant(name="Salão Aurora")
+    seed = await _seed(db_session, tenant_id)
+
+    appointment = await appointment_service.create_appointment(
+        db_session,
+        tenant_id,
+        client_id=seed["client_a"].id,
+        employee_id=seed["employee"].id,
+        service_id=seed["service"].id,
+        starts_at=BASE_START,
+    )
+
+    result = await db_session.execute(
+        select(NotificationLog).where(
+            NotificationLog.tenant_id == tenant_id,
+            NotificationLog.appointment_id == appointment.id,
+            NotificationLog.notification_type == NotificationType.CONFIRMATION,
+        )
+    )
+    log = result.scalars().first()
+    assert "na Salão Aurora" in log.payload_snapshot["message"]

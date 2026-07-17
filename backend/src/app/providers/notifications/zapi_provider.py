@@ -28,7 +28,9 @@ class ZApiProvider(NotificationProvider):
             raise RuntimeError("ZAPI_INSTANCE_ID / ZAPI_TOKEN not configured")
         self._base_url = f"https://api.z-api.io/instances/{settings.zapi_instance_id}/token/{settings.zapi_token}"
 
-    async def send_text(self, *, to_phone: str, message: str, correlation_id: str) -> ProviderSendResult:
+    async def send_text(
+        self, *, to_phone: str, message: str, correlation_id: str, instance: str | None = None
+    ) -> ProviderSendResult:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(f"{self._base_url}/send-text", json={"phone": to_phone, "message": message})
             response.raise_for_status()

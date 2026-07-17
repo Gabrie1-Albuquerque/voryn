@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-import uuid
+from dataclasses import dataclass
 from decimal import Decimal
 
 import httpx
@@ -11,6 +11,18 @@ from app.providers.payments.base import ChargeResult, PaymentMethodLiteral, Paym
 settings = get_settings()
 
 API_BASE = "https://api.mercadopago.com"
+
+
+@dataclass(frozen=True)
+class MercadoPagoConfig:
+    """A tenant's own Mercado Pago account (Company.mp_*_encrypted, decrypted
+    at call time by payment_service). Passed per-instance rather than read
+    from global settings so each business's deposits land in ITS account --
+    same per-tenant-credential shape as email's SmtpConfig.
+    """
+
+    access_token: str
+    webhook_secret: str | None = None
 
 _STATUS_MAP = {
     "pending": "pending",
@@ -38,10 +50,20 @@ class MercadoPagoProvider(PaymentProvider):
     market/price point anyway).
     """
 
-    def __init__(self) -> None:
-        if not settings.mercadopago_access_token:
-            raise RuntimeError("MERCADOPAGO_ACCESS_TOKEN not configured")
-        self._access_token = settings.mercadopago_access_token
+    def __init__(self, config: MercadoPagoConfig | None = None) -> None:
+        # config=None falls back to the global env-var credentials -- kept so
+        # the legacy PAYMENT_PROVIDER=mercadopago global switch still works,
+        # but the per-tenant path (payment_service._provider_for_tenant)
+        # always passes an explicit config.
+        if config is None:
+            if not settings.mercadopago_access_token:
+                raise RuntimeError("MERCADOPAGO_ACCESS_TOKEN not configured")
+            config = MercadoPagoConfig(
+                access_token=settings.mercadopago_access_token,
+                webhook_secret=settings.mercadopago_webhook_secret,
+            )
+        self._access_token = config.access_token
+        self._webhook_secret = config.webhook_secret
 
     def _headers(self, *, idempotency_key: str | None = None) -> dict[str, str]:
         headers = {"Authorization": f"Bearer {self._access_token}", "Content-Type": "application/json"}
@@ -104,7 +126,7 @@ class MercadoPagoProvider(PaymentProvider):
         if not payment_id:
             return None
 
-        if settings.mercadopago_webhook_secret:
+        if self._webhook_secret:
             if not self._verify_signature(payment_id=str(payment_id), headers=headers):
                 return None
 
@@ -139,6 +161,6 @@ class MercadoPagoProvider(PaymentProvider):
 
         manifest = f"id:{payment_id.lower()};request-id:{request_id};ts:{ts};"
         expected = hmac.new(
-            settings.mercadopago_webhook_secret.encode("utf-8"), manifest.encode("utf-8"), hashlib.sha256
+            self._webhook_secret.encode("utf-8"), manifest.encode("utf-8"), hashlib.sha256
         ).hexdigest()
         return hmac.compare_digest(expected, v1)

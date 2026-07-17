@@ -19,7 +19,17 @@ class InboundMessage:
 
 class NotificationProvider(ABC):
     @abstractmethod
-    async def send_text(self, *, to_phone: str, message: str, correlation_id: str) -> ProviderSendResult: ...
+    async def send_text(
+        self, *, to_phone: str, message: str, correlation_id: str, instance: str | None = None
+    ) -> ProviderSendResult:
+        """`instance` identifies WHICH connected WhatsApp number to send from,
+        for providers that host one session per tenant (EvolutionApiProvider
+        uses the company slug; each business connects its own number).
+        Providers with a single global credential (console, zapi,
+        whatsapp_cloud) ignore it -- same optional-per-tenant-context shape
+        as EmailProvider.send's smtp_config.
+        """
+        ...
 
     @abstractmethod
     async def parse_inbound_webhook(self, payload: dict) -> InboundMessage | None: ...
