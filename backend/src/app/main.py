@@ -38,7 +38,14 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(name)s: %(mess
 
 settings = get_settings()
 
-app = FastAPI(title=settings.app_name)
+# Interactive API docs (/docs, /redoc, /openapi.json) expose the full API
+# surface -- fine in dev, needless disclosure in production. Disabled there.
+_docs_kwargs = (
+    {"docs_url": None, "redoc_url": None, "openapi_url": None}
+    if settings.environment == "production"
+    else {}
+)
+app = FastAPI(title=settings.app_name, **_docs_kwargs)
 
 app.add_middleware(
     CORSMiddleware,

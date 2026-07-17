@@ -40,13 +40,12 @@ class MockPaymentProvider(PaymentProvider):
         return ChargeResult(provider_reference_id=provider_reference_id, status="approved")
 
     async def parse_webhook(self, payload: dict, headers: dict) -> WebhookEvent | None:
-        # No real inbound webhook traffic in local dev; present for interface
-        # completeness and so tests can exercise the parsing shape.
-        reference_id = payload.get("provider_reference_id")
-        if not reference_id:
-            return None
-        return WebhookEvent(
-            provider_reference_id=reference_id,
-            status=payload.get("status", "approved"),
-            external_reference=payload.get("external_reference"),
-        )
+        # Always None: the mock never trusts an inbound webhook. The global
+        # /webhooks/mercadopago endpoint runs the global provider, which is
+        # this mock in production (PAYMENT_PROVIDER=mock) -- if it parsed the
+        # body, anyone could POST {status:"approved", external_reference:
+        # "{tenant}.{record}"} to confirm an unpaid appointment. Mock already
+        # auto-approves at charge creation, so it has no legitimate webhook to
+        # process. Real per-tenant Mercado Pago uses the slugged endpoint,
+        # which re-fetches status from MP's authenticated API instead.
+        return None

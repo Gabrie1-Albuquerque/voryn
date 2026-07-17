@@ -101,3 +101,14 @@ async def test_tenant_webhook_rejects_mismatched_tenant_in_external_reference(
     # Must be a clean no-op: no exception, nothing mutated (the record id
     # doesn't even exist under this tenant).
     await payment_service.handle_tenant_mercadopago_webhook(db_session, tenant_id, {}, {})
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_never_trusts_inbound_webhook():
+    """Security: the global /webhooks/mercadopago runs the mock provider in
+    production. If mock parsed the body, anyone could POST a forged
+    "approved" event. It must always return None.
+    """
+    mock = MockPaymentProvider()
+    forged = {"provider_reference_id": "x", "status": "approved", "external_reference": "a.b"}
+    assert await mock.parse_webhook(forged, {}) is None

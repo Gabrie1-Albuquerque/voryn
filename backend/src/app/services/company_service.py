@@ -111,26 +111,42 @@ async def connect_whatsapp(session: AsyncSession, tenant_id: uuid.UUID) -> tuple
                 json={"instanceName": instance, "integration": "WHATSAPP-BAILEYS", "qrcode": True},
             )
             create_resp.raise_for_status()
-            await client.post(
-                f"{base}/webhook/set/{instance}",
-                headers=headers,
-                json={
-                    "webhook": {
-                        "enabled": True,
-                        "url": f"{settings.public_app_url}/webhooks/whatsapp/{instance}",
-                        "events": ["MESSAGES_UPSERT"],
-                    }
-                },
-            )
             qr = (create_resp.json().get("qrcode") or {}).get("base64")
-            return "connecting", qr
+            state = "connecting"
+        else:
+            state = (state_resp.json().get("instance") or {}).get("state", "close")
+            if state == "open":
+                # Still re-assert the webhook (below) even when connected, so
+                # an instance created under the old public URL gets migrated
+                # to the internal one on the next connect.
+                await _set_whatsapp_webhook(client, base, headers, instance)
+                return "open", None
+            connect_resp = await client.get(f"{base}/instance/connect/{instance}", headers=headers)
+            connect_resp.raise_for_status()
+            qr = connect_resp.json().get("base64")
 
-        state = (state_resp.json().get("instance") or {}).get("state", "close")
-        if state == "open":
-            return "open", None
-        connect_resp = await client.get(f"{base}/instance/connect/{instance}", headers=headers)
-        connect_resp.raise_for_status()
-        return state, connect_resp.json().get("base64")
+        # Idempotent: always (re)point the instance webhook at the INTERNAL
+        # backend URL -- runs on create, reconnect, and already-open, so a
+        # webhook set to the old public URL is corrected here.
+        await _set_whatsapp_webhook(client, base, headers, instance)
+        return state, qr
+
+
+async def _set_whatsapp_webhook(client: "httpx.AsyncClient", base: str, headers: dict, instance: str) -> None:
+    await client.post(
+        f"{base}/webhook/set/{instance}",
+        headers=headers,
+        json={
+            "webhook": {
+                "enabled": True,
+                # Internal address, not public: the inbound webhook acts on
+                # the payload directly, so it must not be reachable from the
+                # internet (nginx blocks /webhooks/whatsapp/ externally).
+                "url": f"{settings.internal_webhook_base_url}/webhooks/whatsapp/{instance}",
+                "events": ["MESSAGES_UPSERT"],
+            }
+        },
+    )
 
 
 async def whatsapp_status(session: AsyncSession, tenant_id: uuid.UUID) -> str:
