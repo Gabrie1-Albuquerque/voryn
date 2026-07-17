@@ -73,6 +73,13 @@ class Settings(BaseSettings):
     zapi_instance_id: str | None = None
     zapi_token: str | None = None
 
+    # Self-hosted Evolution API (WhatsApp bridge): one deployment, one
+    # instance per tenant, named by company slug -- see
+    # providers/notifications/evolution_provider.py. URL is the
+    # compose-internal address; the service is never exposed publicly.
+    evolution_api_url: str | None = "http://evolution:8080"
+    evolution_api_key: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

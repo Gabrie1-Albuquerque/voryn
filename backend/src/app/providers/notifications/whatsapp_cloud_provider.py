@@ -34,7 +34,9 @@ class WhatsAppCloudProvider(NotificationProvider):
         self._phone_number_id = settings.whatsapp_cloud_phone_number_id
         self._base_url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{self._phone_number_id}/messages"
 
-    async def send_text(self, *, to_phone: str, message: str, correlation_id: str) -> ProviderSendResult:
+    async def send_text(
+        self, *, to_phone: str, message: str, correlation_id: str, instance: str | None = None
+    ) -> ProviderSendResult:
         payload = {
             "messaging_product": "whatsapp",
             "to": to_phone,

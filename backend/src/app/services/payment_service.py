@@ -7,12 +7,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import async_session_factory, set_tenant_context
+from app.core.encryption import decrypt_secret
 from app.core.exceptions import ValidationError
 from app.models.catalog import Service
 from app.models.enums import AppointmentStatus, DepositType, PaymentMethod, PaymentProviderName, PaymentStatus, PaymentType
 from app.models.payment import PaymentRecord
-from app.providers.payments.base import PaymentMethodLiteral
+from app.models.tenant import Company
+from app.providers.payments.base import PaymentMethodLiteral, PaymentProvider
 from app.providers.payments.factory import get_payment_provider
+from app.providers.payments.mercadopago_provider import MercadoPagoConfig, MercadoPagoProvider
 from app.repositories.payment_repository import PaymentRecordRepository
 from app.services import appointment_service
 
@@ -35,6 +38,31 @@ class DepositChargeResult:
     record: PaymentRecord
     pix_qr_code: str | None
     checkout_url: str | None
+
+
+async def _provider_for_tenant(session: AsyncSession, tenant_id: uuid.UUID) -> tuple[PaymentProvider, PaymentProviderName]:
+    """Tenant's own Mercado Pago account when configured (deposits land
+    directly with the business), otherwise the global provider (mock by
+    default -- unchanged behavior for tenants that haven't connected an
+    account). Same per-tenant-overrides-global rule as email's SMTP: the
+    tenant's MP works regardless of the platform-wide PAYMENT_PROVIDER
+    switch, and can never be broken by it.
+    """
+    company = await session.get(Company, tenant_id)
+    if company is not None and company.mercadopago_configured:
+        config = MercadoPagoConfig(
+            access_token=decrypt_secret(company.mp_access_token_encrypted),
+            webhook_secret=(
+                decrypt_secret(company.mp_webhook_secret_encrypted)
+                if company.mp_webhook_secret_encrypted
+                else None
+            ),
+        )
+        return MercadoPagoProvider(config), PaymentProviderName.MERCADOPAGO
+    global_name = (
+        PaymentProviderName.MERCADOPAGO if get_settings().payment_provider == "mercadopago" else PaymentProviderName.MOCK
+    )
+    return get_payment_provider(), global_name
 
 
 def _compute_deposit_amount(service: Service) -> Decimal:
@@ -64,9 +92,7 @@ async def create_deposit_charge(
     amount = _compute_deposit_amount(service)
     is_full = service.deposit_type == DepositType.PERCENTAGE and service.deposit_value == Decimal(100)
 
-    provider_name = (
-        PaymentProviderName.MERCADOPAGO if get_settings().payment_provider == "mercadopago" else PaymentProviderName.MOCK
-    )
+    provider, provider_name = await _provider_for_tenant(session, tenant_id)
 
     record = PaymentRecordRepository(session, tenant_id).add(
         PaymentRecord(
@@ -80,7 +106,6 @@ async def create_deposit_charge(
     )
     await session.flush()  # populates record.id, needed for external_reference below
 
-    provider = get_payment_provider()
     charge = await provider.create_charge(
         amount=amount,
         method=method,
@@ -133,7 +158,7 @@ async def refresh_payment_status(session: AsyncSession, tenant_id: uuid.UUID, pa
     if record.status != PaymentStatus.PENDING or not record.provider_reference_id:
         return record
 
-    provider = get_payment_provider()
+    provider, _ = await _provider_for_tenant(session, tenant_id)
     charge = await provider.get_charge_status(record.provider_reference_id)
     await _apply_status_and_maybe_confirm(session, tenant_id, record, _CHARGE_STATUS_TO_PAYMENT_STATUS[charge.status])
     await session.commit()
@@ -141,13 +166,11 @@ async def refresh_payment_status(session: AsyncSession, tenant_id: uuid.UUID, pa
 
 
 async def handle_mercadopago_webhook(payload: dict, headers: dict) -> None:
-    """No tenant_id parameter: unlike the WhatsApp webhook (resolved from a
-    per-tenant URL slug), Mercado Pago's webhook is one global endpoint, so
-    tenant has to come out of the notification's own external_reference
-    (see create_deposit_charge) -- meaning this function must open its own
-    session once that's parsed, the same shape as workers/reminders.py's
-    per-tenant scan, for the same underlying reason (no tenant known before
-    this function runs).
+    """Legacy global endpoint (no tenant in the URL): only serves the GLOBAL
+    provider (mock, or env-var Mercado Pago if that switch is ever flipped).
+    Tenants with their own MP account register the slugged endpoint below in
+    their MP dashboard instead -- their webhook secret is per-tenant, which
+    this global path has no way to resolve before parsing.
     """
     provider = get_payment_provider()
     event = await provider.parse_webhook(payload, headers)
@@ -169,3 +192,36 @@ async def handle_mercadopago_webhook(payload: dict, headers: dict) -> None:
 
         await _apply_status_and_maybe_confirm(session, tenant_id, record, _CHARGE_STATUS_TO_PAYMENT_STATUS[event.status])
         await session.commit()
+
+
+async def handle_tenant_mercadopago_webhook(
+    session: AsyncSession, tenant_id: uuid.UUID, payload: dict, headers: dict
+) -> None:
+    """Slugged-endpoint variant: tenant is already resolved from the URL
+    (routers/webhooks.py, via get_tenant_db_by_slug -- same shape as the
+    WhatsApp webhook), which is what makes PER-TENANT credentials workable:
+    the notification body only carries a payment id, so both the follow-up
+    fetch and the signature verification need this tenant's own token and
+    webhook secret before anything else can be learned about the event.
+    """
+    provider, _ = await _provider_for_tenant(session, tenant_id)
+    event = await provider.parse_webhook(payload, headers)
+    if event is None or not event.external_reference:
+        return
+
+    try:
+        tenant_id_str, record_id_str = event.external_reference.split(".", 1)
+        record_id = uuid.UUID(record_id_str)
+    except ValueError:
+        return
+    # A charge created by tenant A must never mutate records via tenant B's
+    # slugged endpoint, even if B's credentials somehow verified it.
+    if tenant_id_str != str(tenant_id):
+        return
+
+    record = await PaymentRecordRepository(session, tenant_id).get(record_id)
+    if record is None:
+        return
+
+    await _apply_status_and_maybe_confirm(session, tenant_id, record, _CHARGE_STATUS_TO_PAYMENT_STATUS[event.status])
+    await session.commit()

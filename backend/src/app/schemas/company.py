@@ -20,6 +20,9 @@ class CompanyResponse(BaseModel):
     smtp_username: str | None
     smtp_from_email: str | None
     smtp_configured: bool
+    # Mercado Pago: only the derived boolean -- token/secret never appear,
+    # not even partially.
+    mercadopago_configured: bool
 
 
 class CompanyUpdateRequest(BaseModel):
@@ -38,6 +41,10 @@ class CompanyUpdateRequest(BaseModel):
     # Company model -- there is no plaintext "smtp_password" column.
     smtp_password: str | None = None
     smtp_from_email: EmailStr | None = None
+    # Write-only, same pattern as smtp_password: encrypted into
+    # mp_*_encrypted by company_service.update_company.
+    mercadopago_access_token: str | None = None
+    mercadopago_webhook_secret: str | None = None
 
     @model_validator(mode="after")
     def _check_reminder_order(self) -> "CompanyUpdateRequest":
@@ -70,3 +77,30 @@ class SmtpTestRequest(BaseModel):
 class SmtpTestResponse(BaseModel):
     success: bool
     message: str
+
+
+class MercadoPagoTestRequest(BaseModel):
+    """Validates a candidate access token against Mercado Pago's own API
+    before it's ever persisted -- same test-before-save shape as SmtpTestRequest.
+    """
+
+    access_token: str = Field(min_length=1)
+
+
+class MercadoPagoTestResponse(BaseModel):
+    success: bool
+    message: str
+
+
+class WhatsAppConnectResponse(BaseModel):
+    """QR code for linking the business's own WhatsApp number to its
+    Evolution instance -- base64 data-URI, rendered directly by the
+    Settings screen. Absent when the instance is already connected.
+    """
+
+    state: str  # connecting | open | close
+    qr_base64: str | None = None
+
+
+class WhatsAppStatusResponse(BaseModel):
+    state: str  # connecting | open | close | not_created

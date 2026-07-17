@@ -121,5 +121,37 @@ services:
       - backend
       - frontend
 
+  # WhatsApp bridge (Evolution API v2): one deployment, one INSTANCE per
+  # tenant, each business connecting its own number via QR from the Settings
+  # screen (backend proxies everything; this service is internal-only).
+  # Requires: (1) EVOLUTION_API_KEY in .env, (2) the "evolution" database
+  # created once in Postgres: docker compose -f docker-compose.prod.yml \
+  #   exec postgres psql -U $POSTGRES_USER -d $POSTGRES_DB -c 'CREATE DATABASE evolution'
+  # RAM note: ~350MB base + ~50-150MB per connected number -- tight on a
+  # 1GB t3.micro (2GB swap helps); watch `free -m` and upgrade the instance
+  # if it starts swapping heavily.
+  evolution:
+    image: evoapicloud/evolution-api:latest
+    restart: unless-stopped
+    environment:
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:?EVOLUTION_API_KEY must be set in .env for production}
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD}@postgres:5432/evolution?schema=public
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/2
+      CACHE_REDIS_PREFIX_KEY: evolution
+      SERVER_TYPE: http
+      SERVER_PORT: 8080
+      LOG_LEVEL: ERROR
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
+  evolution_instances:

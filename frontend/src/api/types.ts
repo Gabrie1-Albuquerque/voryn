@@ -24,6 +24,7 @@ export interface Company {
   smtp_username: string | null;
   smtp_from_email: string | null;
   smtp_configured: boolean;
+  mercadopago_configured: boolean;
 }
 
 export interface AvailabilityWindow {
